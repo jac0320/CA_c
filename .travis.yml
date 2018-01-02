@@ -1,0 +1,33 @@
+language: julia
+julia:
+  - 0.5
+#  - 0.4
+#  - release
+#  - nightly
+
+# this will save build time, once it is working
+cache:
+  directories:
+    - /home/travis/.julia
+
+before_script:
+  # install dependencies
+  # ideally these should be installed from a REQUIRE file in the root of the repository
+  - julia -e 'Pkg.add("ArgParse")'
+  - julia -e 'Pkg.add("Distributions")'
+  - julia -e 'Pkg.add("JSON")'
+  - julia -e 'Pkg.add("JuMP")'
+  - julia -e 'Pkg.add("PowerModels")'
+  - julia -e 'Pkg.add("Coverage")'
+  - julia -e 'Pkg.add("Glob")'
+  # much easiers to test with an open source solver
+  - julia -e 'Pkg.add("Clp")'
+  - julia -e 'Pkg.add("Cbc")'
+
+script:  # core code tests
+  - julia --code-coverage=user --inline=no -e 'include("test/runtests.jl")'
+
+after_success:  # post-processing, if the script passes with no errors
+  - echo $TRAVIS_JULIA_VERSION  # just useful to know what version of Julia was used
+  # submits the code coverage report
+  - julia -e 'using Coverage; cd("src"); Codecov.submit(process_folder("."), codecov_url="https://cov.lanlytics.com", token="aad3f5c6-a4c4-4216-ac42-fe9250f5f226");'
