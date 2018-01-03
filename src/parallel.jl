@@ -37,5 +37,5 @@ if config.PARALLEL   # The whole script runs only when in parallel mode
         remotecall(include, worker, "src/main.jl")
     end
 
-	sleep(20) #Hard waiting for other nodes to load all packages
+	sleep(10) #Hard waiting for other nodes to load all packages
 end

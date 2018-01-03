@@ -8,12 +8,9 @@ if myid() == 1 && config.PARALLEL
 	include("parallel.jl")
 end
 
-using JuMP
+using JuMP, PowerModels, StatsBase
 using PowerModels
-using Glob
-using ProgressMeter
-using StatsBase
-using Compat
+using Glob, using ProgressMeter
 using DataFrames
 
 include("core/types.jl")

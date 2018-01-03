@@ -36,76 +36,32 @@ function read_config(configPath::AbstractString="")
 	userARGS = parse_commandline_args()
 
     # Initialization of the configurations
-    config.INPUTPATH = pwd()"/instance/"
-    config.OUTPUTPATH = pwd()"/instance/"
-    config.TIMELIMIT = 300
-	config.TIMELIMITII = 100
-	config.TIMELIMITIII = 50
-	config.TIMELIMITIV = 10
-    config.SOLVER = "Cbc"
-    config.RUNSEED = 9812739127391
-    config.TOLERANCE = 0.0001
+    config.INPUTPATH = joinpath(homedir(),"Inputs","Climate")
+    config.OUTPUTPATH = joinpath(homedir(), "Outputs", "Climate")
+    config.TIMELIMIT = 10800
+	config.TIMELIMITII = 1800
+	config.TIMELIMITIII = 100
+	config.TIMELIMITIV = 100
+    config.SOLVER = "CPLEX"
+    config.RUNSEED = 9999999
+    config.TOLERANCE = 0.1
 	config.MAXITER = 999
+	config.SHOWLOG = 0
     config.SCREENSHOW = 0
     config.BIGMINT = 9999999
     config.BIGMDOUBLE = 99999999.9999
-    config.FILEOUTPUT = 0
+    config.FILEOUTPUT = 1
     config.CONVERGENCE = 0.001
     config.VERBOSE = 0
     config.PARALLEL = 0
-    config.WORKERS = [];   # Active when parallel structure is turned on.
-	config.JOBPERWORKER = 1
+    config.WORKERS = [80];   # Active when parallel structure is turned on.
+	config.JOBPERWORKER = 0
     config.OPTGAP = 0.01
-	config.THREADS = 0
-	config.MAINTHREADS = 16
-	config.WORKERTHREADS = 4
+	config.THREADS = 8
+	config.MAINTHREADS = 8
+	config.WORKERTHREADS = 2
 	config.USESBDNORISK = 0
-	config.WARMSTART = 0
-
-    # Read configuration from the config.txt file
-	localRepo = false
-	currentRepo = false
-	if isfile(homedir()"/Debug/Climate/config.json")
-		configPath = homedir()"/Debug/Climate/config.json"
-		cfd = JSON.parsefile(configPath)
-		info(string("Configuration directory : ", configPath))
-		localRepo = true
-	else
-		info("No configuration file detected. Using default setting.")
-		return config
-	end
-
-	if localRepo || currentRepo
-	    config.INPUTPATH = cfd["INPUTPATH"]
-	    config.OUTPUTPATH = cfd["OUTPUTPATH"]
-	    config.TIMELIMIT = cfd["TIMELIMIT"]
-		config.TIMELIMITII = cfd["TIMELIMITII"]
-		config.TIMELIMITIII = cfd["TIMELIMITIII"]
-		config.TIMELIMITIV = cfd["TIMELIMITIV"]
-	    config.RUNSEED = cfd["RUNSEED"]
-	    config.SOLVER = cfd["SOLVER"]
-	    config.TOLERANCE = cfd["TOLERANCE"]
-		config.MAXITER = cfd["MAXITER"]
-	    config.SHOWLOG = cfd["SHOWLOG"]
-	    config.SCREENSHOW = cfd["SCREENSHOW"]
-	    config.BIGMINT = cfd["BIGMINT"]
-	    config.BIGMDOUBLE = cfd["BIGMDOUBLE"]
-	    config.FILEOUTPUT = cfd["FILEOUTPUT"]
-	    config.CONVERGENCE = cfd["CONVERGENCE"]
-	    config.VERBOSE = cfd["VERBOSE"]
-	    config.PARALLEL = cfd["PARALLEL"]
-	    config.WORKERS = cfd["WORKERS"]
-		config.JOBPERWORKER = cfd["JOBPERWORKER"]
-	    config.OPTGAP = cfd["OPTGAP"]
-		config.THREADS = cfd["THREADS"]
-		config.MAINTHREADS = cfd["MAINTHREADS"]
-		config.WORKERTHREADS = cfd["WORKERTHREADS"]
-		config.USESBDNORISK = cfd["USESBDNORISK"]
-		config.WARMSTART = cfd["WARMSTART"]
-	else
-		info("No configuration file detected. Taking default value.")
-	end
-
+	config.WARMSTART = 1
 
 	(userARGS["SOLVER"] != "config") && (config.SOLVER = userARGS["SOLVER"])
 	(userARGS["PARALLEL"] != "config") && (config.PARALLEL = Bool(parse(userARGS["PARALLEL"])))
