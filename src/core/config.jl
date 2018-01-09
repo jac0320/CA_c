@@ -101,7 +101,7 @@ function parse_commandline_args(inputDriver::Dict=Dict())
         "--T"
             help = "Total time steps"
             arg_type = Int
-            default = 0
+            default = 5
         "--S"
             help = "Target sample counts for multiple usage. (For internal generated scenarios only.)"
             arg_type = Int

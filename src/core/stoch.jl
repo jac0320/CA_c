@@ -214,10 +214,10 @@ function create_samples(B::Int, S::Int, T::Int, exargs; kwargs...)
         info("Stochastic file input :: $filePath")
         if isfile(filePath)
             stocDict = JSON.parsefile(filePath)
-        elseif isfile(string(config.INPUTPATH, exargs[:PROBLEM], "/", filePath))
-            stocDict = JSON.parsefile(string(config.INPUTPATH,"/", exargs[:PROBLEM], "/", filePath))
-        elseif isfile(string(config.INPUTPATH, filePath))
-            stocDict = JSON.parsefile(string(config.INPUTPATH,filePath))
+        elseif isfile(joinpath(config.INPUTPATH, exargs[:PROBLEM], filePath))
+            stocDict = JSON.parsefile(joinpath(config.INPUTPATH, exargs[:PROBLEM], filePath))
+        elseif isfile(joinpath(config.INPUTPATH, filePath))
+            stocDict = JSON.parsefile(joinpath(config.INPUTPATH,filePath))
         else
             error("ERROR|stoch.jl|read_stoch_file()|Undetected scenario file. Check your input arguments.")
         end
@@ -225,7 +225,6 @@ function create_samples(B::Int, S::Int, T::Int, exargs; kwargs...)
         # Validatea file intactness
         hasSL = false
         hasSS = false
-
         if haskey(stocDict, "SL")
             hasSL = true
         else
@@ -418,18 +417,17 @@ function summary_scenarios(stoc::stocType, param::Dict)
     info("[STOCH] MAX-SLR => $(max_slr)")
     info("[STOCH] BUS under MAX-SLR => $(length(param[:Ele][param[:Ele] .<= max_slr]))")
     for s in 1:stoc.S
-        println("INFO: [STOCH][S=$s] SLR $(stoc.scenarios[s].data["SL"])")
-        println("INFO: [STOCH][S=$s] SS surging locations $(length(stoc.scenarios[s].data["SS"][stoc.scenarios[s].data["SS"] .> param[:Ele]]))")
-        print("INFO: [STOCH][S=$s] BUS under SS ")
+        info("[STOCH][S=$s] SLR $(stoc.scenarios[s].data["SL"])")
+        info("[STOCH][S=$s] BUS under SS ")
         for t in 1:stoc.T
             ss_bus_cnt = 0
             for b in 1:param[:B]
                 if param[:Ele][b] < stoc.scenarios[s].data["SS"][b,t]
                     ss_bus_cnt += 1
-                    info("BUS $(b) surged without protection. (LOAD = $(param[:Pd][b]) | CAP = $(param[:PgUB][b]))")
+                    info("BUS $(b) surged by $(round(stoc.scenarios[s].data["SS"][b,t]-param[:Ele][b],2))m without protection. (LOAD = $(param[:Pd][b]) | CAP = $(param[:PgUB][b]))")
                 end
             end
-            print("T$(t)=>$(ss_bus_cnt); ")
+            println("T$(t)=>$(ss_bus_cnt); ")
         end
         print("\n")
     end

@@ -10,7 +10,7 @@ end
 
 using JuMP, PowerModels, StatsBase
 using PowerModels
-using Glob, using ProgressMeter
+using Glob, ProgressMeter
 using DataFrames
 
 include("core/types.jl")
@@ -20,7 +20,6 @@ include("core/prob.jl")
 include("core/relax.jl")
 include("core/solver.jl")
 include("core/utility.jl")
-include("core/param.jl")
 include("core/stoch.jl")
 include("core/soln.jl")
 
@@ -84,7 +83,7 @@ function adcc(;kwargs...)
 
 	# Generate or read stochasticity info into the problem
     stoc, driver = create_samples(B, S, T, driver, filePath = driver[:STOCHFILE])
-    param, driver = get_parameters(power, stoc, driver)
+    param, driver = read_parameters(power, stoc, driver)
 	summary_driver_arguments(param, stoc, driver)
     summary_scenarios(stoc, param)
 
