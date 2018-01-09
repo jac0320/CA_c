@@ -1,14 +1,13 @@
-function read_power(pName::AbstractString)
+function read_power(exargs::Dict)
 
-	power = Dict()
-	if pName in ["ieee14", "ieee118", "ieee118p", "gs4", "lmbd3"]
-		power = PowerModels.parse_file(joinpath(".","instance", "$(pName).m"))
-		info("Finish reading $(pName) power data...")
+	pname = exargs[:PROBLEM]
+	if pname in ["ieee14", "ieee118", "ieee118p", "gs4", "lmbd3"]
+		power = PowerModels.parse_file(joinpath(".", "instance", "$(pname).m"))
+		info("Finish reading $(pname) power data...")
 		return power
 	else
 		error("No instance network found.")
 	end
-
 end
 
 function read_parameters(power::Dict, stoc::stocType, exargs::Dict)
@@ -31,7 +30,9 @@ function read_parameters(power::Dict, stoc::stocType, exargs::Dict)
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
     p = check_parameter_intactness(p)
 
-    return p, exargs
+	sync_parameters(p, exargs)
+
+    return p
 end
 
 function init_parameters(power::Dict, stoc::stocType, exargs::Dict)
@@ -351,4 +352,8 @@ function resolve_undersea_load_shift(param::Dict, stoc::stocType)
     end
 
     return param
+end
+
+function sync_parameters(param::Dict, exargs::Dict)
+	exargs[:B] = param[:B]
 end

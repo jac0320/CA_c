@@ -11,31 +11,19 @@ module ADCCTypes
 		data::Dict				# More general representation of the stochastic data
 		chance::Float64			# Probability of this scenario
 		pool::Array 			# Solution pool
-		scenarioType() = new()
+		scenarioType(i,data,c) = new(i,data,c,[])
 	end
 
-	type stocItem_reserve
-		name::AbstractString    # Used to index stochastic data
-		block::AbstractString	# "h", "T", "q", ?? Possible "W"
-		index::Array			# Index array for refering to a data point
-		rowRef::Int				# Which row is this stocItem showed up (don't apply to "q")
-		colRef::Int				# Which column is this stocItem showed up (don't apply to "h")
-		coeff::Float64			# Associated coefficient
-		stocItem_reserve() = new()
-	end
-
-	# A structure that stores all samples
 	type stocType
-		S			::Int		#Total Sample count
-		T			::Int		#Total time steps
-		B			::Int		#Total bus counts:a useful place to store this number
-		scenarios	::Array		#Each scenario is a scenarioType
-		sbdColumns	::Array		#Stores non-scenario spcific columns
+		S			::Int					#Total Sample count
+		T			::Int					#Total time steps
+		B			::Int					#Total bus counts:a useful place to store this number
+		scenarios	::Array{scenarioType}	#Each scenario is a scenarioType
+		sbdColumns	::Array					#Stores non-scenario spcific columns
 		meta 		::Dict
-		stocType() = new()
+		stocType(S,T,B) = new(S,T,B,Vector{scenarioType}(S),[],Dict())
 	end
 
-	# Problem specific structures
 	type designType
         k           ::Int           # Identifier of a design
 		pg			::Any			# Expansion Design Decisions

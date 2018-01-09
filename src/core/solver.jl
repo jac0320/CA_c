@@ -142,13 +142,3 @@ function print_iis_gurobi(m::Model)
 	end
 
 end
-
-function setup_envs()
-
-    if config.SOLVER == "Gurobi"
-    	config.ENVS = Gurobi.Env()
-    else
-        config.ENVS = 1
-    end
-
-end
