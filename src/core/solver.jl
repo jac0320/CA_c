@@ -69,11 +69,7 @@ function solver_config(model::JuMP.Model; kwargs...)
                                         SimplexPricing=1,Heuristics=0.001));
         end
     elseif config.SOLVER == "Cbc"
-        info("Cbc solver doesn't support MIP focus and Presolve")
-        setsolver(model, CbcSolver(seconds=timelimit,
-                                    logLevel=showlog,
-                                    ratioGap=mipgap,
-                                    threads=threads));
+        error("Does not supoort solver Cbc.")
     else
         error("ERROR::solver.jl::init_model_solver()::Unsupport Solver... Change configuration file");
     end
@@ -144,15 +140,5 @@ function print_iis_gurobi(m::Model)
 	else
 		info("Current solver doesn't support IIS.")
 	end
-
-end
-
-function setup_envs()
-
-    if config.SOLVER == "Gurobi"
-    	config.ENVS = Gurobi.Env()
-    else
-        config.ENVS = 1
-    end
 
 end

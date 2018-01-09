@@ -10,7 +10,7 @@ end
 
 using JuMP, PowerModels, StatsBase
 using PowerModels
-using Glob, using ProgressMeter
+using Glob, ProgressMeter
 using DataFrames
 
 include("core/types.jl")
@@ -20,7 +20,6 @@ include("core/prob.jl")
 include("core/relax.jl")
 include("core/solver.jl")
 include("core/utility.jl")
-include("core/param.jl")
 include("core/stoch.jl")
 include("core/soln.jl")
 
@@ -51,8 +50,6 @@ elseif config.SOLVER == "Cbc" || config.SOLVER == "cbc"
 	using Cbc
 end
 
-setup_envs()
-
 function adcc(;kwargs...)
 
 	# ======================================================================== #
@@ -74,21 +71,14 @@ function adcc(;kwargs...)
 	)
 	# ======================================================================== #
 
-    power = read_power(driver[:PROBLEM])
+    power = read_power(driver)
+    stoc = get_scenarios(driver)
+    param = read_parameters(power, stoc, driver)
 
-	# Driver is claimed to be the global driver
-    T 	= driver[:T]
-    S 	= driver[:S]
-    driver[:B] = length(power["bus"])
-	B	= driver[:B]
-
-	# Generate or read stochasticity info into the problem
-    stoc, driver = create_samples(B, S, T, driver, filePath = driver[:STOCHFILE])
-    param, driver = get_parameters(power, stoc, driver)
 	summary_driver_arguments(param, stoc, driver)
     summary_scenarios(stoc, param)
 
-    if driver[:ALGO] == "det" || driver[:ALGO] == "regular"
+    if driver[:ALGO] == "solve" || driver[:ALGO] == "regular"
         info(string("Sending original problem to solver ", driver[:ALGO]))
         totalTime = @elapsed problem, solution = deterministic(power, param, stoc, driver)
 		println("Wall time [$totalTime]s")
@@ -149,8 +139,12 @@ function adcc(;kwargs...)
 				param=param,
 				stoc=stoc,
 				exargs=driver)
+
 	elseif driver[:ALGO] == "simulation"
 		error("No implementation yet about this algorithm.")
+
+	elseif driver[:ALGO] == "generate"
+		error("No implementation yet about generting random scenarios.")
     end
 
     info("\n\\\\------------ Successfully completed -------------//")
@@ -190,9 +184,9 @@ function summary_driver_arguments(param::Dict, stoc::stocType, driver::Dict)
 	Sys.cpu_summary()
 	info("Head Node Name        : ")
 	run(`hostname`)
-	info("ADDITIONAL CSV		: ", !(driver[:CSV] == nothing))
 
     @assert param[:S]   == stoc.S
+	@assert param[:B]   == driver[:B]
     @assert param[:S]   == driver[:S]
     @assert param[:T]   == stoc.T
     @assert param[:T]   == driver[:T]
