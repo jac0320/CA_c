@@ -113,7 +113,7 @@ function parse_commandline_args(inputDriver::Dict=Dict())
         "--STOCHMODE", "--sm"
             help = "Internally generate samples with a specific mode. (| File | peaceful | evolving | random | fierce | evolving-highslr | evolving-fierce | evolving-95-perc | evolving-average | evolving-highslr-average | evolving-fierce-average |)"
             arg_type = AbstractString
-            default = "evolving"
+            default = nothing
         "--STOCHFILE", "--sf"
             help = "User specified stoch file (.json) for reading in. This overrides the internal scenario generation commands."
             arg_type = AbstractString
@@ -290,16 +290,9 @@ function get_driver_args(args::Dict; kwargs...)
     (args["EPS"] != 1.0) && (driver[:eps] = args["EPS"])
 
     # Stochasticity arguments
-    if isempty(args["STOCHFILE"])
-        # Check if user indicated any scenario generation method
-        (!isempty(args["STOCHMODE"])) && (driver[:STOCHMODE] = args["STOCHMODE"])
-        driver[:STOCHFILE] = ""
-        driver[:STOCHWRITE] = args["STOCHWRITE"]
-    else
-        driver[:STOCHMODE] = args["STOCHMODE"]
-        driver[:STOCHFILE] = args["STOCHFILE"]
-        driver[:STOCHWRITE] = args["STOCHWRITE"]
-    end
+    driver[:STOCHMODE] = args["STOCHMODE"]
+    driver[:STOCHFILE] = args["STOCHFILE"]
+    driver[:STOCHWRITE] = args["STOCHWRITE"]
 
     isempty(args["PARAMFILE"]) ? driver[:PARAMFILE] = "" : driver[:PARAMFILE] = args["PARAMFILE"]
 

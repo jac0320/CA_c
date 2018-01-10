@@ -1,13 +1,14 @@
-function get_scenarios(extras::Dict)
+function get_scenarios(exargs::Dict)
 
     srand(config.RUNSEED); #Set random seed
-    if !isempty(extras[:STOCHFILE])
-        scenarios = read_stoch_file(extras[:STOCHFILE], extras)
-        extras[:S] = scenarios.S
-        return scenarios
+    if !isempty(exargs[:STOCHFILE])
+        scenarios = read_stoch_file(exargs[:STOCHFILE], exargs)
+        exargs[:S] = scenarios.S
     else
         error("No scenario file indicated.")
     end
+
+    return reprocess_scenarios(scenarios, exargs)
 end
 
 function read_stoch_file(filepath::String, exargs::Dict)
@@ -78,406 +79,92 @@ function read_stoch_file(filepath::String, exargs::Dict)
     return stoc
 end
 
-# """
-#     Input -> B::Int | S::Int | T::Int | sampleMode::Array | ...
-#     This is main simulator shell that manage randomness in problems.
-#     Output -> stoc::stocType
-# """
-# function create_samples(B::Int, S::Int, T::Int, exargs; kwargs...)
-#
-#     extras = Dict(kwargs)
-#
-#     sampleMode = exargs[:STOCHMODE]
-#
-#     srand(config.RUNSEED); #Set random seed
-#
-#     samples = stocType();
-#     samples.S = S  # This will be correct if reading from a file
-#     samples.T = T
-#     samples.B = B
-#     samples.sbdColumns = []
-#
-#     # Driver Arguments
-# 	mode = exargs[:STOCHMODE]
-#
-#     function one_null_scenario()
-#         oneScenario = scenarioType()
-#         oneScenario.data = Dict("SL"=>zeros(Float64, T), "SS"=>zeros(Float64, B, T))
-#         oneScenario.chance = 0.0
-#         oneScenario.pool = []
-#         return oneScenario
-#     end
-#
-#     function generate_zero_sample(stoc::stocType)
-#         stoc.scenarios = []
-#         for s in 1:S
-#             push!(stoc.scenarios, scenarioType())
-#             sl = zeros(Float64,T)
-#             ss = zeros(Float64,B,T)
-#             push!(stoc.scenarios, scenarioType())
-#             stoc.scenarios[s].ind = s
-#             stoc.scenarios[s].data = Dict("SL"=>sl, "SS"=>ss)
-#             stoc.scenarios[s].chance = 1/S
-#             stoc.scenarios[s].pool = []
-#         end
-#         return stoc
-#     end
-#
-#     function generate_random_sample(stoc::stocType, SLINIT::Float64, serverity::Float64)
-#         stoc.scenarios = []
-#         for s in 1:S
-#             sl = zeros(Float64,T);
-#             ss = zeros(Float64,B,T);
-#             push!(stoc.scenarios, scenarioType())
-#             # Scenario data generation
-#             sl[1] = SLINIT + rand()*2
-#             for t in 2:T
-# 				sl[t] = sl[t-1] + rand()*2;
-# 			end
-#             for t in 1:T
-# 				ss[:,t] = sl[t] + rand(B)*serverity;
-# 			end
-#             stoc.scenarios[s].ind = s
-#             stoc.scenarios[s].data = Dict("SL"=>sl, "SS"=>ss)
-#             stoc.scenarios[s].chance = 1/S
-#             stoc.scenarios[s].pool = []
-#         end
-#         return stoc
-#     end
-#
-#     function generate_evolving_sample(stoc::stocType, SLINIT::Float64, serverity_base::Float64)
-#         stoc.scenarios = []
-#         for s in 1:S
-#             sl = zeros(Float64,T)
-#             ss = zeros(Float64,B,T)
-#             push!(stoc.scenarios, scenarioType())
-#             # Scenario data generation
-#             sl[1] = SLINIT + rand();
-#             for t in 2:T
-#                 sl[t] = sl[t-1] + rand() * t * 0.2;
-#             end
-#             for t in 1:T
-#                 randTemp = rand(Exponential(t*serverity_base/2))
-#                 for b in 1:B
-#                     ss[b,t] = sl[t] + max(0, randTemp);
-#                 end
-#             end
-#             stoc.scenarios[s].ind = s
-#             stoc.scenarios[s].data = Dict("SL"=>sl, "SS"=>ss)
-#             stoc.scenarios[s].chance = 1/S
-#             stoc.scenarios[s].pool = []
-#         end
-#         return stoc
-#     end
-#
-#     function generate_tuning_sample(stoc::stocType)
-#         stoc.scenarios = []
-#         for s in 1:S
-#             sl = zeros(Float64,T)
-#             ss = zeros(Float64,B,T)
-#             push!(stoc.scenarios, scenarioType())
-#             # Scenario data generation
-#             sl[1] = 0.0;
-#             for t in 2:T
-#                 sl[t] = sl[t-1] + rand() * t * 0.2;
-#             end
-#             for t in 1:T
-#                 randTemp = abs(rand(Normal(2.0, 0.2*t)))
-#                 for b in 1:B
-#                     ss[b,t] = max(0, randTemp);
-#                 end
-#             end
-#             stoc.scenarios[s].ind = s
-#             stoc.scenarios[s].data = Dict("SL"=>sl, "SS"=>ss)
-#             stoc.scenarios[s].chance = 1/S
-#             stoc.scenarios[s].pool = []
-#         end
-#         return stoc
-#     end
-#
-#     function calculate_mean_sample(stoc::stocType)
-#         meanScenario = scenarioType()
-#         meanScenario.ind = 1
-#         meanScenario.data = Dict("SL"=>zeros(Float64, T), "SS"=>zeros(Float64, B, T))
-#         meanScenario.chance = 1.0
-#         meanScenario.pool = []
-#         for s in 1:stoc.S
-#     		for t in 1:T
-#                 meanScenario.data["SL"][t] += stoc.scenarios[s].data["SL"][t]/stoc.S
-#     			for b in 1:B
-#                     meanScenario.data["SS"][b,t] += stoc.scenarios[s].data["SS"][b,t]/stoc.S
-#     			end
-#     		end
-#         end
-#         stoc.scenarios = [meanScenario]
-#         stoc.S = 1
-#         return stoc
-#     end
-#
-#     function calculate_max_sample(stoc::stocType)
-#         meanScenario = scenarioType()
-#         meanScenario.ind = 1
-#         meanScenario.data = Dict("SL"=>zeros(Float64, T), "SS"=>zeros(Float64, B, T))
-#         meanScenario.chance = 1.0
-#         meanScenario.pool = []
-#         for s in 1:stoc.S
-#             for t in 1:T
-#                 meanScenario.data["SL"][t] = max(meanScenario.data["SL"][t], stoc.scenarios[s].data["SL"][t])
-#                 for b in 1:B
-#                     meanScenario.data["SS"][b,t] = max(meanScenario.data["SS"][b,t], stoc.scenarios[s].data["SS"][b,t])
-#                 end
-#             end
-#         end
-#         stoc.scenarios = [meanScenario]
-#         stoc.S = 1
-#         return stoc
-#     end
-#
-#     function calculate_percentil_sample(stoc::stocType, perc::Int)
-#         rank = max(floor((perc/100) * stoc.S), 1)
-#         percScenario = scenarioType()
-#         percScenario.ind = 1
-#         percScenario.data = Dict("SL"=>zeros(Float64, T), "SS"=>zeros(Float64, B, T))
-#         percScenario.chance = 1.0
-#
-#         for t in 1:stoc.T
-#             sltemp = []
-#             sltempnew = []
-#             for s in 1:stoc.S
-#                 push!(sltempnew, stoc.scenarios[s].data["SL"][t])
-#             end
-#             percScenario.data["SL"][t] = select(sltempnew, Int(rank))
-#
-#             for b in 1:B
-#                 sstemp_b=[]
-#                 sstemp_bnew=[]
-#                 for s in 1:stoc.S
-#                     push!(sstemp_bnew, stoc.scenarios[s].data["SS"][b,t])
-#                 end
-#                 percScenario.data["SS"][b,t] = select(sstemp_bnew, Int(rank))
-#             end
-#         end
-#
-#         # Refresh the stocType
-#         stoc.S = 1
-#         stoc.scenarios = [percScenario]
-#
-#         return stoc
-#     end
-#
-#     function read_stoch_file(filepath::AbstractString)
-#
-#         stoc = stocType()
-#         info("Stochastic file input :: $filepath")
-#         if isfile(filepath)
-#             stocDict = JSON.parsefile(filepath)
-#         elseif isfile(joinpath(config.INPUTPATH, exargs[:PROBLEM], filepath))
-#             stocDict = JSON.parsefile(joinpath(config.INPUTPATH, exargs[:PROBLEM], filepath))
-#         elseif isfile(joinpath(config.INPUTPATH, filepath))
-#             stocDict = JSON.parsefile(joinpath(config.INPUTPATH,filepath))
-#         else
-#             error("ERROR|stoch.jl|read_stoch_file()|Undetected scenario file. Check your input arguments.")
-#         end
-#
-#         # Validatea file intactness
-#         hasSL = false
-#         hasSS = false
-#         if haskey(stocDict, "SL")
-#             hasSL = true
-#         else
-#             info("No sea level scnearios indicated in this stocFile. Using 0s.")
-#         end
-#
-#         if haskey(stocDict, "SS")
-#             hasSS = true
-#         else
-#             info("No surge scenarios indicate in this stocFile. Using 0s.")
-#         end
-#
-#         if !hasSL && !hasSS
-#             error("ERROR|stoch.jl|read_stoch_file()|No scenarios indicated at all")
-#         end
-#
-#         # If There must be at least one scenario
-#         if hasSL
-#             stoc.S = length(stocDict["SL"])
-#             stoc.T = length(stocDict["SL"]["1"])
-#             stoc.B = B      #Just use the input value
-#             if haskey(stocDict, "S")
-#                 @assert stoc.S == stocDict["S"]
-#             end
-#             if haskey(stocDict, "T")
-#                 @assert stoc.T == stocDict["T"]
-#             end
-#         end
-#
-#         if hasSS
-#             stoc.S = length(stocDict["SS"])
-#             stoc.T = length(stocDict["SS"]["1"])
-#             stoc.B = length(stocDict["SS"]["1"][1])
-#             if haskey(stocDict, "S")
-#                 @assert stoc.S == stocDict["S"]
-#             end
-#             if haskey(stocDict, "T")
-#                 @assert stoc.T <= stocDict["T"]
-#             end
-#             @assert B == stoc.B     # Make sure the stoch file match the current network
-#         end
-#
-#         # Check user defined time steps
-#         @assert exargs[:T] == T
-#         userT = exargs[:T]
-#         if userT > stoc.T
-#             error("Trying to run model with high resolution failed. Scenario files is with less.")
-#         elseif userT == stoc.T
-#             info("User model resolution matchs scenario inputs. No additional action needed.")
-#             userSteps = [1:stoc.T;]
-#         else
-#             info("User model resolution coraser. With fixed horizon... resampling by corasen resolutions.")
-#             userSteps = []
-#             if stoc.T % userT == 0
-#                 userStepSize = Int(stoc.T/userT)
-#                 for t in 1:userT
-#                     push!(userSteps, t * userStepSize)
-#                 end
-#                 info("Scenario file input resolution $(stoc.T). Request resolution $(userT). ")
-#                 info("Extracting data by steps $(userSteps)")
-#                 info("Overriding stoc.T ")
-#                 stoc.T = userT
-#             else
-#                 error("Doesn't support corasion with mismatched data. No approximation on scnearios anymore")
-#             end
-#         end
-#
-#         # Start writing scenarios in
-#         stoc.scenarios = []
-#         stoc.sbdColumns = []
-#         for i in 1:stoc.S
-#             oneScenario = scenarioType()
-#             sl = zeros(Float64,T)
-#             ss = zeros(Float64,B,T)
-#             j = 1
-#             for t in userSteps
-#                 if hasSL
-#                     sl[j] = stocDict["SL"][string(i)][t]
-#                 end
-#                 if hasSS
-#                     for b in 1:stoc.B
-#                         ss[b,j] = stocDict["SS"][string(i)][t][b]
-#                     end
-#                 end
-#                 j += 1
-#             end
-#             oneScenario.ind = i
-#             oneScenario.data = Dict("SL"=>sl, "SS"=>ss)
-#             oneScenario.pool = []
-#             push!(stoc.scenarios, oneScenario)
-#         end
-#
-#         return stoc
-#     end
-#
-#     # Parsed arg driving
-#     splitMode = split(mode, "-")
-#     splitLength = length(splitMode)
-#     mainMode = ""
-#     statMode = ""
-#
-#     # Detect if serverity is given
-#     provideServerity = false
-#     mainMode = splitMode[1] #Positional
-#     if splitLength > 1
-#         if splitMode[2] != "average" && splitMode[2] != "max" && isa(parse(splitMode[2]), Number) != true
-#             mainMode = string(splitMode[1],"-",splitMode[2])
-#             provideServerity = true
-#         end
-#     end
-#
-#     # Detect stat mode
-#     provideStat = false
-#     if provideServerity == false
-#         if splitLength >= 2
-#             statMode = splitMode[2]
-#             if isa(parse(splitMode[2]), Number) == true
-#                 @assert splitMode[3] == "perc"
-#             end
-#             provideStat = true
-#         end
-#     else
-#         if splitLength >= 3
-#             statMode = splitMode[3]
-#             if isa(parse(splitMode[3]), Number) == true
-#                 @assert splitMode[4] == "perc"
-#             end
-#             provideStat = true
-#         end
-#     end
-#
-#     # Generate main mode
-#     if mainMode == "peaceful"
-#         samples = generate_zero_sample(samples)
-#     elseif mainMode == "random"
-#         samples = generate_random_sample(samples, 0.0, 2.0);
-#     elseif mainMode == "evolving"
-#         samples = generate_evolving_sample(samples, 0.0, 1.0);
-#     elseif mainMode == "tuning"
-#         samples = generate_tuning_sample(samples);
-#     elseif mainMode == "fierce"
-#         samples = generate_random_sample(samples, 0.0, 5.0);
-#     elseif mainMode == "evolving-highslr"
-#         samples = generate_evolving_sample(samples, 3.0, 0.7);
-#     elseif mainMode == "evolving-fierce"
-#         samples = generate_evolving_sample(samples, 0.0, 1.3);
-#     elseif mainMode == "file"
-#         if haskey(extras, :filepath)
-#             samples = read_stoch_file(extras[:filepath])
-#             info("Successfully read stoch file.")
-#         else
-#             error("Please indicate stoch file path.")
-#         end
-#     else
-#         error("ERROR|stoch.jl|create_samples()|Unkown main mode for sceanrio generation.")
-#     end
-#
-#     if provideStat == true
-#         if statMode == "average"
-#             samples = calculate_mean_sample(samples)
-#         elseif statMode == "max"
-#             samples = calculate_max_sample(samples)
-#         elseif isa(parse(statMode), Number) == true
-#             samples = calculate_percentil_sample(samples, parse(statMode))
-#         end
-#     end
-#
-#     # Insert the invisible null scenario
-#     dummyScenario = one_null_scenario()
-#     push!(samples.scenarios, one_null_scenario())
-#
-#     # Correct Driver Arguments about the number of samples
-#     exargs[:S] = samples.S
-#
-#     return samples, exargs
-# end
+function reprocess_scenarios(stoc::stocType, exargs::Dict)
 
-function create_null_samples(B::Int, T::Int)
+    isempty(exargs[:STOCHMODE]) && return stoc
 
-    samples = stocType()
-    samples.S = 1
-    samples.T = T
-    samples.B = 1
+    if exargs[:STOCHMODE] == "max"
+        return downscale_scenarios(stoc, 100)
+    elseif exargs[:STOCHMODE] == "min"
+        return downscale_scenarios(stoc, 1)
+    elseif exargs[:STOCHMODE] == "median"
+        return downscale_scenarios(stoc, 50)
+    elseif exargs[:STOCHMODE] == "ave"
+        return downscale_scenarios(stoc, 0.0)
+    elseif ismatch(r"\d+-dev", exargs[:STOCHMODE])
+        deviation = Float(split(exargs[:STOCHMODE], "-")[1])
+        return downscale_scenarios(stoc, deviation)
+    elseif ismatch(r"\d+-perc", exargs[:STOCHMODE])
+        perc = Int(split(exargs[:STOCHMODE], "-")[1])
+        return downscale_scenarios(stoc, perc)
+    else
+        error("Unknown stochastic mode.")
+    end
+end
 
-    sl = zeros(Float64,T)
-    ss = zeros(Float64,B,T)
+function downscale_scenarios(stoc::stocType, deviation::Float64)
 
-    samples.scenarios = []
-    push!(samples.scenarios, scenarioType())
+    s = stocType(1, stoc.T, stoc.B)
+    s.scenarios[1] = scenarioType(1, Dict("SL"=>zeros(Float64,stoc.T),"SS"=>zeros(Float64,stoc.B,stoc.T)), 1.0)
 
-    samples.scenarios[1].ind = 1
-    samples.scenarios[1].data = Dict("SL"=>sl, "SS"=>ss)
-    samples.scenarios[1].chance = 1.0
-    samples.scenarios[1].pool = []
+    slr_sort = zeros(Float64, stoc.S)
+    ss_sort = zeros(Float64, stoc.S)
 
-    return samples
+    for t in 1:stoc.T
+        for s in 1:stoc.S
+            slr_sort[s] = stoc.scenarios[s].data["SL"][t]
+        end
+        slr_std = std(slr_sort)
+        slr_mean = mean(slr_sort)
+        s.scenarios.data["SL"][t] = slr_mean + deviation*slr_std
+
+        for b in 1:B
+            for s in 1:stoc.S
+                ss_sort = stoc.scenarios[s].data["SS"][b,t]
+            end
+            s.scenario.data["SS"][b,t] = select(sstemp_bnew, Int(rank))
+            ss_std = std(ss_sort)
+            ss_mean = mean(ss_sort)
+            s.scenario.data["SS"][b,t] = ss_mean + deviation*ss_std
+        end
+    end
+
+    return s
+end
+
+function downscale_scenarios(stoc::stocType, perc::Int)
+
+    rank = max(floor((perc/100) * stoc.S), 1)
+
+    s = stocType(1, stoc.T, stoc.B)
+    s.scenarios[1] = scenarioType(1, Dict("SL"=>zeros(Float64,stoc.T),"SS"=>zeros(Float64,stoc.B,stoc.T)), 1.0)
+
+    slr_sort = zeros(Float64, stoc.S)
+    ss_sort = zeros(Float64, stoc.S)
+
+    for t in 1:stoc.T
+        for s in 1:stoc.S
+            slr_sort[s] = stoc.scenarios[s].data["SL"][t]
+        end
+        s.scenarios.data["SL"][t] = select(sltempnew, rank)
+
+        for b in 1:B
+            for s in 1:stoc.S
+                ss_sort = stoc.scenarios[s].data["SS"][b,t]
+            end
+            s.scenario.data["SS"][b,t] = select(sstemp_bnew, Int(rank))
+        end
+    end
+
+    return s
+end
+
+function null_scenario_stoc(B::Int, T::Int)
+
+    s = stocType(1, T, B)
+    s.scenarios[1] = scenarioType(1, Dict("SL"=>zeros(Float64,stoc.T),"SS"=>zeros(Float64,stoc.B,stoc.T)), 1.0)
+
+    return s
 end
 
 function summary_scenarios(stoc::stocType, param::Dict)
@@ -513,52 +200,46 @@ function summary_scenarios(stoc::stocType, param::Dict)
 end
 
 function write_stocType_json(stoc::stocType, filename::AbstractString)
-    stocDict = Dict()
-    stocDict["SL"] = Dict()
-    stocDict["SS"] = Dict()
+
+    outputDict = Dict()
+
+    outputDict["SL"] = Dict()
+    outputDict["SS"] = Dict()
 
     for s in 1:stoc.S
-        stocDict["SL"][s] = stoc.scenarios[s].data["SL"]
-        stocDict["SS"][s] = stoc.scenarios[s].data["SS"]
+        outputDict["SL"][s] = stoc.scenarios[s].data["SL"]
+        outputDict["SS"][s] = stoc.scenarios[s].data["SS"]
     end
 
-    wf = open(string(config.OUTPUTPATH,"/",filename), "w")
-    write(wf, JSON.json(stocDict))
-    close(wf)
+    f = open(joinpath(config.OUTPUTPATH, filename), "w")
+    JSON.print(f, outputDict)
+    close(f)
 
     return
 end
 
-function subsetting_stocType(stoc::stocType, subset, exargs::Dict)
+function subset_scenarios(stoc::stocType, subset::Vector, exargs::Dict)
 
-    # Two main mode :: 1->subset is int; 2->set/array
-    if isa(subset, Int)
-        if subset < stoc.S
-            selected = sample(1:stoc.S,subset,replace=false)
-        elseif subset == stoc.S
-            return stoc #Nothing need to be done
-        else
-            error("ERROR|stoch.jl|subsetting_stocType()|Cardinality of the subset cannot be more than original.")
-        end
-    else
-        selected = subset
+    N = length(subset)
+    s = stocType(N, stoc.T, stoc.B)
+    i = 1
+    for s in subset
+        scenarioType(i, Dict("SL"=>copy(stoc.scenarios[s].data["SL"]),
+                             "SS"=>copy(stoc.scenarios[s].data["SS"])), 1/N)
+        i += 1
     end
 
-    # Construct new stocType structure
-    substoc = stocType()
-    substoc.S = length(selected)
-    substoc.T = length(exargs[:T])
-    substoc.scenarios = []
+    return s
+end
 
-    for s in selected
-        oneScenario = scenarioType()
-        oneScenario.data = stoc.scenarios[s].data
-        oneScenario.chance = 1/length(selected)
-        oneScenario.pool = []
-        push!(substoc.scenarios, oneScenario)
-    end
+subset_scenarios(stoc::stocType, subset::Set, exargs::Dict) = subset_scenarios(stoc, subset, exargs)
 
-    return substoc
+function subset_scenarios(stoc::stocType, subset::Int, exargs::Dict)
+
+    subset > stoc.S && error("subsetting more than original set")
+    selected = randperm(stoc.S)[1:subset]
+
+    return subset_scenarios(stoc, selected, exargs)
 end
 
 function append_scenarios(stoc::stocType, exstoc::stocType)
@@ -593,51 +274,13 @@ function get_percentile_SS(stoc::stocType, perc::Int, select=[])
     return res
 end
 
-function compose_scenarios(SSMode::AbstractString, SLRFilePath::AbstractString, driver::Dict)
+function copy_null_stocType(s::stocType)
 
-    B = driver[:B]
-    T = driver[:T]
-    driver[:STOCHMODE] = "file"
-
-    # Read partial scenarios from a file, SS will be left blank here
-    SLRStoc, driver = create_samples(B, driver[:S], T, driver, filepath = SLRFilePath)
-
-    # Now generate paritial scenarios internally
-    driver[:STOCHMODE] = SSMode
-    SSStoc, driver = create_samples(B, driver[:S], T, driver)
-
-    # Now join two scenarios sets
-    for s in 1:driver[:S]
-        for b in 1:B
-            for t in 1:T
-                SLRStoc.scenarios[s].data["SS"][b,t] = SLRStoc.scenarios[s].data["SS"][t] + SSStoc.scenarios[s].data["SS"][b,t]
-            end
-        end
+    ns = stocType(s.S, s.T, s.B)
+    for i in 1:s.S
+        ns.scenarios[i] = scenarioType(i, Dict("SL"=>copy(s.scenarios[i].data["SL"]),
+                                               "SS"=>copy(s.scenarios[i].data["SS"])), 1/s.S)
     end
 
-    return SLRStoc
-end
-
-function copy_null_stocType(stoc::stocType)
-
-    S = stoc.S
-
-    newStoc = stocType()
-    newStoc.S = stoc.S
-    newStoc.T = stoc.T
-    newStoc.B = stoc.B
-    newStoc.scenarios = []
-    for s in 1:S
-        oneScenario = scenarioType()
-        oneScenario.ind = s
-        oneScenario.chance = 1/S
-        oneScenario.data = copy(stoc.scenarios[s].data)
-        for dataKeys in keys(oneScenario.data)
-            oneScenario.data[dataKeys] -= oneScenario.data[dataKeys]
-        end
-        oneScenario.pool = []
-        push!(newStoc.scenarios, oneScenario)
-    end
-
-    return newStoc
+    return ns
 end

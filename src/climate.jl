@@ -112,7 +112,7 @@ function adcc(;kwargs...)
 			srand(i)
 			randpick = randperm(stoc.S)
 			info("Picking scenario subset [$(driver[:SUBSETS])] $(randpick[1:driver[:SUBSETS]])")
-			substoc = subsetting_stocType(stoc, randpick[1:driver[:SUBSETS]], driver)
+			substoc = subset_scenarios(stoc, randpick[1:driver[:SUBSETS]], driver)
 			info("Writing stoc file into output folder... NAME=$(driver[:NAME])")
 			write_stocType_json(substoc, string(driver[:NAME],"_$i.json"))
 		end

@@ -80,36 +80,7 @@ function write_json(content::Dict,filename::AbstractString, pathprefix::Abstract
 
 end
 
-function parse_scenarios_jason(filepath::AbstractString)
-	stocDict = JSON.parsefile(filepath)
-	stoc = stocType()
 
-	# Measurement of dimensions
-	stoc.S = S = length(stocDict["SL"])
-	stoc.T = T = length(stocDict["SL"]["1"])
-	B = length(stocDict["SS"]["1"][1])
-
-	# Initialization
-	stoc.scenarios[]
-
-	for s in 1:S
-		scenario = scenarioType()
-		scenario.data = Dict("SL"=>stocDict["SL"][string(s)], "SS"=>stocDict["SS"][string(s)])
-		scenario.chance = 1/S
-		scenario.pool = []
-		push!(stoc.scenarios, scenario)
-	end
-
-	return stoc
-end
-
-function print_stoc_summary(stoc::stocType)
-	return
-end
-
-"""
-	Translate an array[array] structure to matrix
-"""
 function arrarr2mat(arrarr::Array, numType, dimA::Int, dimB::Int)
 
 	@assert dimB == length(arrarr)
@@ -125,9 +96,6 @@ function arrarr2mat(arrarr::Array, numType, dimA::Int, dimB::Int)
 	return mat
 end
 
-"""
-	Get problem right hand side value in an array
-"""
 function get_rhs(model::JuMP.Model)
 
     rowCnt = MathProgBase.numlinconstr(model)
