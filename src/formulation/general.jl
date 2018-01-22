@@ -51,7 +51,9 @@ function dcpf_model(prob::oneProblem, param::Dict, exargs::Dict, selection=[]; k
 	options = Dict(kwargs)
 
 	haskey(options, :subprobType) ? subprobType = options[:subprobType] : subprobType = "free"
-	isempty(selection) ? selection = [1:S;] : selection = selection
+	isempty(selection) ? selection = [1:param[:S];] : selection = selection
+
+	B = param[:B]
 
 	# [TODO] this really should be happening here
 	E = length(param[:line])
