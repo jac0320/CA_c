@@ -49,25 +49,11 @@ module ADCCTypes
 
 	# JuMP package must be included for this to work
 	type oneProblem
-		name		::AbstractString 	# instance name
-		T			::Int				# total time steps
-		S			::Int				# total sample size
-		B			::Int
-		eps			::Float64			# risk measurement
-		stage		::Int				# stochastic stage
-		cols		::Int
-		rows		::Int
 		vars		::Dict				# Variable Management
-		param		::Dict				# store all user-defined parameters {:Symbol, values}
+		param		::Dict				# Do I need to keep this?
 		model		::JuMP.Model		# JuMP optimization model
-		samples		::Any				# samples this problem used
-		builder		::Any				# Unified model builder
-		varBuilder	::Function			# Advanced
-		consBuilder ::Function			# Advanced
-		objBuilder	::Function			# Advanced
 		status 		::Any				# Optimality Indicator
-		objective	::Float64			# Objective value
-		oneProblem() = new()			# __init__()
+		oneProblem() = new(Dict(), Dict(),Model(),:None)
 	end
 	# ============================================================================ #
 

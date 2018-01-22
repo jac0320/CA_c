@@ -17,12 +17,12 @@ include("core/types.jl")
 using ADCCTypes	# Local Module
 
 include("core/prob.jl")
-include("core/relax.jl")
 include("core/solver.jl")
 include("core/utility.jl")
 include("core/stoch.jl")
 include("core/soln.jl")
 
+include("formulation/posts.jl")
 include("formulation/general.jl")
 include("formulation/evaluation.jl")
 include("formulation/benders.jl")
@@ -35,7 +35,7 @@ include("algo/sbd_norisk.jl")
 include("algo/sbd_utility.jl")
 include("algo/sbd_iso.jl")
 include("algo/sbd_heu.jl")
-include("algo/benders.jl")
+# include("algo/benders.jl")
 include("algo/evaluation.jl")
 include("algo/report.jl")
 include("algo/heuristic.jl")
@@ -58,7 +58,7 @@ function adcc(;kwargs...)
 	driver = get_driver_args(
 	    args,	# Command line input
 	    PROBLEM = "nesta_case14_ieee.m",
-	    MODEL = network_characteristic,
+	    MODEL = cnf_model,
 	    STOCHMODE = "evolving",
 	    STOCHFILE = "./",
 	    ALG = "regular",

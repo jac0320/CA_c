@@ -81,7 +81,7 @@ end
 
 function reprocess_scenarios(stoc::stocType, exargs::Dict)
 
-    isempty(exargs[:STOCHMODE]) && return stoc
+    exargs[:STOCHMODE] == nothing && return stoc
 
     if exargs[:STOCHMODE] == "max"
         return downscale_scenarios(stoc, 100)

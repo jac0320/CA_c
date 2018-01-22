@@ -332,11 +332,11 @@ function get_driver_args(args::Dict; kwargs...)
 	end
 
     if args["MODEL"] == "network"
-       driver[:MODEL] = network_characteristic
+       driver[:MODEL] = cnf_model
     elseif args["MODEL"] == "capacity"
-       driver[:MODEL] = capacity_characteristic
+       driver[:MODEL] = cb_model
     elseif args["MODEL"] == "dc"
-       driver[:MODEL] = dc_characteristic
+       driver[:MODEL] = dcpf_model
     elseif args["MODEL"] == "ac"
        error("ERROR|adcc.jl|main()|AC model characteristic not yet implemented.")
     else

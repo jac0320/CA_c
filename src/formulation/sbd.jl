@@ -1,11 +1,3 @@
-"""
-	Input ::
-		power::Dict, param::Dict, stocData::stochType, soln::designType/solnType
-	Usage ::
-		This function builds a base problem to get ready for diffferent needs in the sample-based algorithms.
-	Output ::
-		prob::oneProblem
-"""
 function sbd_base_formulation(power::Dict, param::Dict, stocData::stocType, soln=nothing, warmstart=nothing, builtModel=nothing)
 
 	S = 0					#A clean master problem shouldn't carry any scenario
@@ -37,7 +29,7 @@ function sbd_base_formulation(power::Dict, param::Dict, stocData::stocType, soln
 		return builtModel
 	else
 		prob = oneProblem()
-		prob.model = init_model_solver()	# setup empty model and associated solver
+		solver_config(prob.model)	# setup empty model and associated solver
 		prob.param = deepcopy(param);
 		prob.vars = Dict()
 
@@ -203,6 +195,7 @@ function attach_scenario(prob::oneProblem, stoc::stocType, select, characteristi
 	end
 
     characteristic(prob, exargs, select, subprobType=subprobType)
+	# This needs to be fixed.
     formulation_features(prob, stoc, exargs, overrideEps, select, subprobType=subprobType);
 
     return prob
@@ -438,7 +431,7 @@ function check_slackness(power::Dict, param::Dict, stoc::stocType, soln, exargs:
 			slackProbScenario = pop!(selection)
 			slackProb = attach_scenario(slackProb, stoc, [slackProbScenario], exargs[:MODEL], 0.0, exargs, subprobType="slackness")
 
-			# ============================= NEW MODIFIED SECTION ================================ #
+			# =================-============ NEW MODIFIED SECTION ================================ #
 			slackProb.param[:assDet] = ones(Int, param[:B], param[:T], 1)
 			for i in 1:param[:B]
 				for t in 1:param[:T]
@@ -495,7 +488,7 @@ function sbd_master_formulation(power::Dict, param::Dict, stoc::stocType, exargs
 
 	options = Dict(kwargs)
 	master = oneProblem()
-	m = init_model_solver()	# setup empty model and associated solver
+	solver_config(master.model)	# setup empty model and associated solver
 
 	# Attach the parameters
 	master.param = param

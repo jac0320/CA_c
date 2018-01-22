@@ -1,21 +1,3 @@
-# This function returns a empty model with configured solver attached to it
-function init_model_solver()
-
-    if config.SOLVER == "CPLEX" || config.SOLVER == "Cplex"
-        m = Model(solver = CplexSolver())
-        solver_config(m)
-    elseif config.SOLVER == "GUROBI" || config.SOLVER == "Gurobi"
-        m = Model(solver = GurobiSolver())
-        solver_config(m)
-    elseif config.SOLVER == "Cbc"
-        m = Model(solver = CbcSolver())
-    else
-		error("ERROR::solver.jl::init_model_solver()::Unsupport Solver... Change configuration file or give command line argument --SOLVER");
-    end
-
-    return m
-end
-
 function solver_config(model::JuMP.Model; kwargs...)
 
     options = Dict(kwargs)
@@ -71,7 +53,7 @@ function solver_config(model::JuMP.Model; kwargs...)
     elseif config.SOLVER == "Cbc"
         error("Does not supoort solver Cbc.")
     else
-        error("ERROR::solver.jl::init_model_solver()::Unsupport Solver... Change configuration file");
+        error("ERROR::solver.jl::solver_config()::Unsupport Solver... Change configuration file")
     end
 
     return model

@@ -237,8 +237,8 @@ function benders_master(master_suite::Dict, dataPackage::Dict; kwargs...)
     m = master_suite[:constraints](m, vars, package=dataPackage)
     m = master_suite[:objective](m, vars, hasEta=true)
 
+    # [TODO] requires fix
     master = oneProblem()
-    master.name = "BendersMaster"
     master.T = dataPackage[:stoc].T
     master.S = dataPackage[:stoc].S
     master.stage = 1
