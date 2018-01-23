@@ -1,47 +1,14 @@
-type configType
-	INPUTPATH 	   ::AbstractString
-	OUTPUTPATH	   ::AbstractString
-	TIMELIMIT	   ::Float64
-	TIMELIMITII	   ::Float64
-	TIMELIMITIII   ::Float64
-	TIMELIMITIV    ::Float64
-	SOLVER		   ::AbstractString
-    ENVS           ::Any
-	RUNSEED		   ::Int
-	TOLERANCE	   ::Float64
-	MAXITER        ::Int
-	SHOWLOG		   ::Int
-	SCREENSHOW	   ::Int
-	BIGMINT		   ::Int
-	BIGMDOUBLE	   ::Float64
-	FILEOUTPUT	   ::Int
-	CONVERGENCE    ::Float64
-	VERBOSE		   ::Int
-	PARALLEL       ::Bool
-	WORKERS		   ::Array
-    JOBPERWORKER   ::Int
-	OPTGAP		   ::Float64
-	THREADS		   ::Int
-    MAINTHREADS    ::Int
-    WORKERTHREADS  ::Int
-    USESBDNORISK   ::Bool
-	WARMSTART	   ::Bool
-	configType() = new()
-end
-
 function read_config(configPath::AbstractString="")
 
     config = configType()
 
 	userARGS = parse_commandline_args()
 
-    # Initialization of the configurations
     config.INPUTPATH = joinpath(homedir(),"Inputs","Climate")
     config.OUTPUTPATH = joinpath(homedir(), "Outputs", "Climate")
     config.TIMELIMIT = 10800
 	config.TIMELIMITII = 1800
 	config.TIMELIMITIII = 100
-	config.TIMELIMITIV = 100
     config.SOLVER = "CPLEX"
     config.RUNSEED = 9999999
     config.TOLERANCE = 0.1
@@ -76,11 +43,6 @@ function read_config(configPath::AbstractString="")
     return config
 end
 
-"""
-    Parse commandline arguments input the code.
-    If users prefer to call using functional arguments.
-    It will do the same work.
-"""
 function parse_commandline_args(inputDriver::Dict=Dict())
 
     s = ArgParseSettings()
@@ -283,7 +245,6 @@ function get_driver_args(args::Dict; kwargs...)
 
     driver = Dict(kwargs)
     driver[:PROBLEM] = args["PROBLEM"]
-    driver[:CACHE] = args["CACHE"]
 
     (args["T"] > 0) && (driver[:T] = args["T"])
 	(args["S"] > 0) && (driver[:S] = args["S"])
@@ -310,7 +271,7 @@ function get_driver_args(args::Dict; kwargs...)
 	driver[:HEURISTIC] = args["HEURISTIC"]
     driver[:EVALDESIGN] = args["DESIGNFILE"]
     driver[:EVALTARGET] = args["EVALOBJ"]
-	driver[:EVALCONTINUE] = args["EVALCONTINUE"]
+
 	driver[:EVALFILE] = args["EVALFILE"]
     driver[:NAME] = args["NAME"]
     driver[:PARALLEL] = args["PARALLEL"]
@@ -328,15 +289,6 @@ function get_driver_args(args::Dict; kwargs...)
 	driver[:CGMAX] = args["CGMAX"]
     driver[:OUTPATH] = args["OUTPUTPATH"]
 
-	if isfile("$(config.INPUTPATH)$(args["CSV"]).csv")
-		driver[:CSV] = readtable("$(config.INPUTPATH)$(args["CSV"]).csv")
-		info("Found CSV file as support data")
-	elseif isfile("$(config.INPUTPATH)$(args["CSV"])")
-		driver[:CSV] = readtable("$(config.INPUTPATH)$(args["CSV"])")
-		info("Found CSV file as support data")
-	else
-		driver[:CSV] = nothing
-	end
 
     if args["MODEL"] == "network"
        driver[:MODEL] = network_characteristic
@@ -353,4 +305,49 @@ function get_driver_args(args::Dict; kwargs...)
     (haskey(args, "FEATURES")) && (driver[:FEATURES] = args["FEATURES"])
 
 	return driver
+end
+
+
+function build_driver(args::Dict)
+
+    driver = Dict()
+
+    haskey(args, :PROBLEM)      ? driver[:PROBLEM] = args[:T] : driver[:PROBLEM] = "ieee14"
+    haskey(args, :T)            ? driver[:T] = args[:T] : driver[:T] = 5
+    haskey(args, :EPS)          ? driver[:eps] = args[:EPS] : driver[:eps] = 0.0
+    haskey(args, :STOCHFILE)    ? driver[:STOCHFILE] = args[:STOCHFILE] : driver[:STOCHFILE] = ""
+    haskey(args, :ALGO)         ? driver[:ALGO] = args[:ALGO] : driver[:ALGO] = "solve"
+    haskey(args, :PARALLEL)     ? driver[:PARALLEL] = args[:PARALLEL] : driver[:PARALLEL] = false
+    haskey(args, :CGHEURISTIC)  ? driver[:CGHEURISTIC] = args[:CGHEURISTIC] : driver[:CGHEURISTIC] = "improver_heu"
+    haskey(args, :HEURISTIC)    ? driver[:HEURISTIC] = args[:HEURISTIC] : driver[:HEURISTIC] = "reactor"
+    haskey(args, :EVALDESIGN)       ? driver[:EVALDESIGN] = args[:EVALDESIGN] : driver[:EVALDESIGN] = ""
+    haskey(args, :EVALTARGET)       ? driver[:EVALTARGET] = args[:EVALTARGET] : driver[:EVALTARGET] = "feasibility"
+    haskey(args, :COSTLambda)       ? driver[:COSTLambda] = args["COSTLambda"] : driver[:COSTLambda] = -1.0
+    haskey(args, :SHEDLambda)       ? driver[:SHEDLambda] = args["SHEDLambda"] : driver[:SHEDLambda] = 0.95
+    haskey(args, :CONGESTLambda)    ? driver[:CONGESTLambda] = args["CONGESTLambda"] : driver[:CONGESTLambda] = 1.0
+    haskey(args, :ANGLESHIFTLambda) ? driver[:ANGLESHIFTLambda] = args["ANGLESHIFTLambda"] : driver[:ANGLESHIFTLambda] = 30.0
+    haskey(args, :DISCOUNTLambda)   ? driver[:DISCOUNTLambda] = args["DISCOUNTLambda"] : driver[:DISCOUNTLambda] = -0.01
+    haskey(args, :DEMANDLambda)     ? driver[:DEMANDLambda] = args["DEMANDLambda"] : driver[:DEMANDLambda] = 0.02
+    haskey(args, :NAME)         ? driver[:NAME] = args[:NAME] : driver[:NAME] = "00"
+    haskey(args, :WARMSTART)    ? driver[:WARMSTART] = args[:WARMSTART] : driver[:WARMSTART] = false
+    haskey(args, :OUTPATH)      ? driver[:OUTPATH] = args[:OUTPATH] : driver[:OUTPATH] = ""
+
+    if args["MODEL"] == "network"
+       driver[:MODEL] = network_characteristic
+    elseif args["MODEL"] == "capacity"
+       driver[:MODEL] = capacity_characteristic
+    elseif args["MODEL"] == "dc"
+       driver[:MODEL] = dc_characteristic
+    elseif args["MODEL"] == "ac"
+       error("ERROR|adcc.jl|main()|AC model characteristic not yet implemented.")
+    else
+       driver[:MODEL] = network_characteristic  # By default
+    end
+
+    haskey(args, :SOLVER)
+
+    # Obsolete Options
+    haskey(args, :FEATURES) = ["sample-based-risk","surge-load-shed"]
+
+    return driver
 end

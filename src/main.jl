@@ -1,55 +1,3 @@
-# using JSON
-# using ArgParse
-#
-# include("core/config.jl")
-# config = read_config()
-#
-# if myid() == 1 && config.PARALLEL
-# 	include("parallel.jl")
-# end
-#
-# using JuMP, PowerModels, StatsBase
-# using PowerModels
-# using Glob, ProgressMeter
-# using DataFrames
-
-include("core/types.jl")
-using ADCCTypes	# Local Module
-
-include("core/prob.jl")
-include("core/relax.jl")
-include("core/solver.jl")
-include("core/utility.jl")
-include("core/stoch.jl")
-include("core/soln.jl")
-
-include("formulation/general.jl")
-include("formulation/evaluation.jl")
-include("formulation/benders.jl")
-include("formulation/sbd.jl")
-include("formulation/cuts.jl")
-
-include("algo/deterministic.jl")
-include("algo/sbd_risk.jl")
-include("algo/sbd_norisk.jl")
-include("algo/sbd_utility.jl")
-include("algo/sbd_iso.jl")
-include("algo/sbd_heu.jl")
-include("algo/benders.jl")
-include("algo/evaluation.jl")
-include("algo/report.jl")
-include("algo/heuristic.jl")
-include("algo/enumerate.jl")
-
-
-if config.SOLVER == "Gurobi" || config.SOLVER == "gurobi" || config.SOLVER=="GUROBI"
-	using Gurobi
-elseif config.SOLVER == "CPLEX" || config.SOLVER == "Cplex" || config.SOLVER == "cplex"
-	using CPLEX
-elseif config.SOLVER == "Cbc" || config.SOLVER == "cbc"
-	using Cbc
-end
-
 function adcc(;kwargs...)
 
 	# ======================================================================== #
@@ -70,6 +18,12 @@ function adcc(;kwargs...)
 	    S = 10
 	)
 	# ======================================================================== #
+
+
+	# *******************
+	userARGS = Dict(kwargs)
+	driver = build_driver(userARGS)
+	# *******************
 
     power = read_power(driver)
     stoc = get_scenarios(driver)

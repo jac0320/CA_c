@@ -29,7 +29,7 @@ function evaluation(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwar
     allSubprobs = Array{oneProblem}(stoc.S)
     write(outf, "[EVALUATING] Warming start the testing models...")
     warm_start = time()
-    @showprogress for s = 1:stoc.S
+    for s = 1:stoc.S
         allSubprobs[s] = oneProblem()
         allSubprobs[s] = sbd_base_formulation(power, param, stoc)
         allSubprobs[s] = attach_scenario(allSubprobs[s], stoc, [s], exargs[:MODEL], 0.0, exargs, subprobType="free")
