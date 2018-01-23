@@ -1,13 +1,14 @@
-function get_scenarios(extras::Dict)
+function get_scenarios(exargs::Dict)
 
     srand(config.RUNSEED); #Set random seed
-    if !isempty(extras[:STOCHFILE])
-        scenarios = read_stoch_file(extras[:STOCHFILE], extras)
-        extras[:S] = scenarios.S
-        return scenarios
+    if !isempty(exargs[:STOCHFILE])
+        scenarios = read_stoch_file(exargs[:STOCHFILE], exargs)
+        exargs[:S] = scenarios.S
     else
         error("No scenario file indicated.")
     end
+
+    return reprocess_scenarios(scenarios, exargs)
 end
 
 function read_stoch_file(filepath::String, exargs::Dict)
@@ -78,25 +79,92 @@ function read_stoch_file(filepath::String, exargs::Dict)
     return stoc
 end
 
-function create_null_samples(B::Int, T::Int)
+function reprocess_scenarios(stoc::stocType, exargs::Dict)
 
-    samples = stocType()
-    samples.S = 1
-    samples.T = T
-    samples.B = 1
+    isempty(exargs[:STOCHMODE]) && return stoc
 
-    sl = zeros(Float64,T)
-    ss = zeros(Float64,B,T)
+    if exargs[:STOCHMODE] == "max"
+        return downscale_scenarios(stoc, 100)
+    elseif exargs[:STOCHMODE] == "min"
+        return downscale_scenarios(stoc, 1)
+    elseif exargs[:STOCHMODE] == "median"
+        return downscale_scenarios(stoc, 50)
+    elseif exargs[:STOCHMODE] == "ave"
+        return downscale_scenarios(stoc, 0.0)
+    elseif ismatch(r"\d+-dev", exargs[:STOCHMODE])
+        deviation = Float(split(exargs[:STOCHMODE], "-")[1])
+        return downscale_scenarios(stoc, deviation)
+    elseif ismatch(r"\d+-perc", exargs[:STOCHMODE])
+        perc = Int(split(exargs[:STOCHMODE], "-")[1])
+        return downscale_scenarios(stoc, perc)
+    else
+        error("Unknown stochastic mode.")
+    end
+end
 
-    samples.scenarios = []
-    push!(samples.scenarios, scenarioType())
+function downscale_scenarios(stoc::stocType, deviation::Float64)
 
-    samples.scenarios[1].ind = 1
-    samples.scenarios[1].data = Dict("SL"=>sl, "SS"=>ss)
-    samples.scenarios[1].chance = 1.0
-    samples.scenarios[1].pool = []
+    s = stocType(1, stoc.T, stoc.B)
+    s.scenarios[1] = scenarioType(1, Dict("SL"=>zeros(Float64,stoc.T),"SS"=>zeros(Float64,stoc.B,stoc.T)), 1.0)
 
-    return samples
+    slr_sort = zeros(Float64, stoc.S)
+    ss_sort = zeros(Float64, stoc.S)
+
+    for t in 1:stoc.T
+        for s in 1:stoc.S
+            slr_sort[s] = stoc.scenarios[s].data["SL"][t]
+        end
+        slr_std = std(slr_sort)
+        slr_mean = mean(slr_sort)
+        s.scenarios.data["SL"][t] = slr_mean + deviation*slr_std
+
+        for b in 1:B
+            for s in 1:stoc.S
+                ss_sort = stoc.scenarios[s].data["SS"][b,t]
+            end
+            s.scenario.data["SS"][b,t] = select(sstemp_bnew, Int(rank))
+            ss_std = std(ss_sort)
+            ss_mean = mean(ss_sort)
+            s.scenario.data["SS"][b,t] = ss_mean + deviation*ss_std
+        end
+    end
+
+    return s
+end
+
+function downscale_scenarios(stoc::stocType, perc::Int)
+
+    rank = max(floor((perc/100) * stoc.S), 1)
+
+    s = stocType(1, stoc.T, stoc.B)
+    s.scenarios[1] = scenarioType(1, Dict("SL"=>zeros(Float64,stoc.T),"SS"=>zeros(Float64,stoc.B,stoc.T)), 1.0)
+
+    slr_sort = zeros(Float64, stoc.S)
+    ss_sort = zeros(Float64, stoc.S)
+
+    for t in 1:stoc.T
+        for s in 1:stoc.S
+            slr_sort[s] = stoc.scenarios[s].data["SL"][t]
+        end
+        s.scenarios.data["SL"][t] = select(sltempnew, rank)
+
+        for b in 1:B
+            for s in 1:stoc.S
+                ss_sort = stoc.scenarios[s].data["SS"][b,t]
+            end
+            s.scenario.data["SS"][b,t] = select(sstemp_bnew, Int(rank))
+        end
+    end
+
+    return s
+end
+
+function null_scenario_stoc(B::Int, T::Int)
+
+    s = stocType(1, T, B)
+    s.scenarios[1] = scenarioType(1, Dict("SL"=>zeros(Float64,stoc.T),"SS"=>zeros(Float64,stoc.B,stoc.T)), 1.0)
+
+    return s
 end
 
 function summary_scenarios(stoc::stocType, param::Dict)
@@ -132,52 +200,46 @@ function summary_scenarios(stoc::stocType, param::Dict)
 end
 
 function write_stocType_json(stoc::stocType, filename::AbstractString)
-    stocDict = Dict()
-    stocDict["SL"] = Dict()
-    stocDict["SS"] = Dict()
+
+    outputDict = Dict()
+
+    outputDict["SL"] = Dict()
+    outputDict["SS"] = Dict()
 
     for s in 1:stoc.S
-        stocDict["SL"][s] = stoc.scenarios[s].data["SL"]
-        stocDict["SS"][s] = stoc.scenarios[s].data["SS"]
+        outputDict["SL"][s] = stoc.scenarios[s].data["SL"]
+        outputDict["SS"][s] = stoc.scenarios[s].data["SS"]
     end
 
-    wf = open(string(config.OUTPUTPATH,"/",filename), "w")
-    write(wf, JSON.json(stocDict))
-    close(wf)
+    f = open(joinpath(config.OUTPUTPATH, filename), "w")
+    JSON.print(f, outputDict)
+    close(f)
 
     return
 end
 
-function subsetting_stocType(stoc::stocType, subset, exargs::Dict)
+function subset_scenarios(stoc::stocType, subset::Vector, exargs::Dict)
 
-    # Two main mode :: 1->subset is int; 2->set/array
-    if isa(subset, Int)
-        if subset < stoc.S
-            selected = sample(1:stoc.S,subset,replace=false)
-        elseif subset == stoc.S
-            return stoc #Nothing need to be done
-        else
-            error("ERROR|stoch.jl|subsetting_stocType()|Cardinality of the subset cannot be more than original.")
-        end
-    else
-        selected = subset
+    N = length(subset)
+    s = stocType(N, stoc.T, stoc.B)
+    i = 1
+    for s in subset
+        scenarioType(i, Dict("SL"=>copy(stoc.scenarios[s].data["SL"]),
+                             "SS"=>copy(stoc.scenarios[s].data["SS"])), 1/N)
+        i += 1
     end
 
-    # Construct new stocType structure
-    substoc = stocType()
-    substoc.S = length(selected)
-    substoc.T = length(exargs[:T])
-    substoc.scenarios = []
+    return s
+end
 
-    for s in selected
-        oneScenario = scenarioType()
-        oneScenario.data = stoc.scenarios[s].data
-        oneScenario.chance = 1/length(selected)
-        oneScenario.pool = []
-        push!(substoc.scenarios, oneScenario)
-    end
+subset_scenarios(stoc::stocType, subset::Set, exargs::Dict) = subset_scenarios(stoc, subset, exargs)
 
-    return substoc
+function subset_scenarios(stoc::stocType, subset::Int, exargs::Dict)
+
+    subset > stoc.S && error("subsetting more than original set")
+    selected = randperm(stoc.S)[1:subset]
+
+    return subset_scenarios(stoc, selected, exargs)
 end
 
 function append_scenarios(stoc::stocType, exstoc::stocType)
@@ -212,51 +274,13 @@ function get_percentile_SS(stoc::stocType, perc::Int, select=[])
     return res
 end
 
-function compose_scenarios(SSMode::AbstractString, SLRFilePath::AbstractString, driver::Dict)
+function copy_null_stocType(s::stocType)
 
-    B = driver[:B]
-    T = driver[:T]
-    driver[:STOCHMODE] = "file"
-
-    # Read partial scenarios from a file, SS will be left blank here
-    SLRStoc, driver = create_samples(B, driver[:S], T, driver, filepath = SLRFilePath)
-
-    # Now generate paritial scenarios internally
-    driver[:STOCHMODE] = SSMode
-    SSStoc, driver = create_samples(B, driver[:S], T, driver)
-
-    # Now join two scenarios sets
-    for s in 1:driver[:S]
-        for b in 1:B
-            for t in 1:T
-                SLRStoc.scenarios[s].data["SS"][b,t] = SLRStoc.scenarios[s].data["SS"][t] + SSStoc.scenarios[s].data["SS"][b,t]
-            end
-        end
+    ns = stocType(s.S, s.T, s.B)
+    for i in 1:s.S
+        ns.scenarios[i] = scenarioType(i, Dict("SL"=>copy(s.scenarios[i].data["SL"]),
+                                               "SS"=>copy(s.scenarios[i].data["SS"])), 1/s.S)
     end
 
-    return SLRStoc
-end
-
-function copy_null_stocType(stoc::stocType)
-
-    S = stoc.S
-
-    newStoc = stocType()
-    newStoc.S = stoc.S
-    newStoc.T = stoc.T
-    newStoc.B = stoc.B
-    newStoc.scenarios = []
-    for s in 1:S
-        oneScenario = scenarioType()
-        oneScenario.ind = s
-        oneScenario.chance = 1/S
-        oneScenario.data = copy(stoc.scenarios[s].data)
-        for dataKeys in keys(oneScenario.data)
-            oneScenario.data[dataKeys] -= oneScenario.data[dataKeys]
-        end
-        oneScenario.pool = []
-        push!(newStoc.scenarios, oneScenario)
-    end
-
-    return newStoc
+    return ns
 end

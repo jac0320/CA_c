@@ -7,7 +7,7 @@ function reactor(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwargs.
 
     # Generate a no hurricane scenario
     info("[REACTOR]Generating null scenario...")
-    zeroStoc = create_null_samples(param[:B], param[:T])
+    zeroStoc = null_scenario_stoc(param[:B], param[:T])
 
     # Solve the no hurricane scenario for a expansion plan
     expandProb = oneProblem()
@@ -78,7 +78,7 @@ function highland(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwargs
 
     # Generate a no hurricane scenario
     info("[HIGHLAND] Generating null scenario...")
-    zeroStoc = create_null_samples(param[:B], param[:T])
+    zeroStoc = null_scenario_stoc(param[:B], param[:T])
 
     # Solve the no hurricane scenario for a expansion plan
     expandProb = oneProblem()
@@ -163,7 +163,7 @@ function bathtub(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwargs.
 
     # Generate a no hurricane scenario
     info("[BATHTUB]Generating null scenario...")
-    zeroStoc = create_null_samples(B, T)
+    zeroStoc = null_scenario_stoc(B, T)
 
     # Solve the no hurricane scenario for a expansion plan
     expandProb = oneProblem()
@@ -235,7 +235,7 @@ function extreme(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwargs.
 
     # Generate a no hurricane scenario
     info("[EXTREME]Generating null scenario...")
-    zeroStoc = create_null_samples(B, T)
+    zeroStoc = null_scenario_stoc(B, T)
     zeroStoc.scenarios[1].data["SL"] = copy(pickScenario.data["SL"])
 
     # Solve the no hurricane scenario for a expansion plan
@@ -301,7 +301,7 @@ function warmstart_heuristic(prob::oneProblem, power::Dict, param::Dict, stoc::s
     isempty(selection) ? selection = [1:stoc.S;] : selection = selection
 
     # Generate a no hurricane scenario
-    zeroStoc = create_null_samples(B, T)
+    zeroStoc = null_scenario_stoc(B, T)
 
     # Solve the no hurricane scenario for a expansion plan
     expandProb = oneProblem()
