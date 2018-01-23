@@ -124,7 +124,7 @@ function isolate_solve_one_scenario(power::Dict,
 
 	oneIsoProb = formulation(power,param,stoc, [s], exargs, subprobType=subprobType)
 	warmstart_heuristic(oneIsoProb, power, param, stoc, exargs, selection=[s])
-	solver_config(oneIsoProb.model, license=config.ENVS, timelimit=config.TIMELIMITIII, mipgap=config.OPTGAP, showlog=config.SHOWLOG, focus="optimality", presolve=1, threads=config.WORKERTHREADS)
+	config_solver(oneIsoProb.model, license=config.ENVS, timelimit=config.TIMELIMITIII, mipgap=config.OPTGAP, showlog=config.SHOWLOG, focus="optimality", presolve=1, threads=config.WORKERTHREADS)
 	status = solve(oneIsoProb.model)
 
 	if status == :Infeasible
@@ -134,7 +134,7 @@ function isolate_solve_one_scenario(power::Dict,
 		oneIsoDesign = get_design(oneIsoProb.model)
 		oneIsoDesign.source = [s]
 		oneIsoDesign.time = getsolvetime(oneIsoProb.model)
-		oneIsoDesign.lb = solver_lower_bound(oneIsoProb.model)
+		oneIsoDesign.lb = oneIsoProb.model.objBound
 		oneIsoDesign.active = true
 	end
 

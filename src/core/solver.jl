@@ -1,112 +1,92 @@
 # This function returns a empty model with configured solver attached to it
-function init_model_solver()
+function identify_solver(driver::Dict)
 
-    if config.SOLVER == "CPLEX" || config.SOLVER == "Cplex"
-        m = Model(solver = CplexSolver())
-        solver_config(m)
-    elseif config.SOLVER == "GUROBI" || config.SOLVER == "Gurobi"
-        m = Model(solver = GurobiSolver())
-        solver_config(m)
-    elseif config.SOLVER == "Cbc"
-        m = Model(solver = CbcSolver())
+    solverstring = string(driver[:SOLVER])
+
+    if contains(solverstring,"Gurobi")
+        return "Gurobi"
+    elseif contains(solverstring,"CPLEX")
+        return "CPLEX"
+    elseif contains(solverstring,"Cbc")
+        return "Cbc"
+    elseif contains(solverstring,"GLPK")
+        return "GLPK"
     else
-		error("ERROR::solver.jl::init_model_solver()::Unsupport Solver... Change configuration file or give command line argument --SOLVER");
+        error("Unsupported mip solver.")
     end
 
-    return m
 end
 
-function solver_config(model::JuMP.Model; kwargs...)
+function insert_solver_option(options, kw::Symbol, val::Any)
 
-    options = Dict(kwargs)
+    for (i,k) in enumerate(options)
+        kw in collect(k) && deleteat!(options, i)
+    end
+    push!(options, (kw, val))
 
-    if haskey(options, :focus)
-        if options[:focus] == "feasibility" #1
-            focus = 1
-        elseif options[:focus] == "optimality" #2
-            focus = 2
-        elseif options[:focus] == "bound" #3
-            focus = 3
-        else
-            info("Unkown focus option. Setting to 0 - balanced.")
-            focus = 0
-        end
-    else
-        focus = 0
+    return
+end
+
+function config_solver(model::JuMP.Model, driver::Dict;
+                       focus=0,
+                       timelimit=-1,
+                       showlog=0,
+                       mipgap=-1,
+                       threads=-1,
+                       presolve=1,
+                       use_license=false)
+
+    if focus == "feasibility" #1
+        focus = 1
+    elseif focus == "optimality" #2
+        focus = 2
+    elseif focus == "bound" #3
+        focus = 3
     end
 
-    haskey(options, :timelimit) ? timelimit = options[:timelimit] : timelimit = config.TIMELIMIT
-    haskey(options, :showlog) ? showlog = options[:showlog] : showlog = 0
-    haskey(options, :mipgap) ? mipgap = options[:mipgap] : mipgap = config.OPTGAP
-    haskey(options, :threads) ? threads = options[:threads] : threads = config.THREADS
-    haskey(options, :presolve) ? presolve = options[:presolve] : presolve = 1
-    haskey(options, :license) ? use_license = true : use_license = false
-
-    if config.SOLVER == "CPLEX" || config.SOLVER == "Cplex"
-        setsolver(model, CplexSolver(CPX_PARAM_TILIM=timelimit,
-                                       CPX_PARAM_SCRIND=showlog,
-                                       CPX_PARAM_EPGAP=mipgap,
-                                       CPX_PARAM_PREIND=presolve,
-                                       CPX_PARAM_THREADS=threads,
-                                       CPX_PARAM_MIPEMPHASIS=focus));
-    elseif config.SOLVER == "GUROBI" || config.SOLVER == "Gurobi"
-        if use_license && options[:license] != 1
-            setsolver(model, GurobiSolver(options[:license],
-                                        OutputFlag=showlog,
-                                        TimeLimit=timelimit,
-                                        MIPGap=mipgap,
-                                        Presolve=presolve,
-                                        Threads=threads,
-                                        MIPFocus=focus,
-                                        SimplexPricing=1,Heuristics=0.001));
-        else
-            setsolver(model, GurobiSolver(OutputFlag=showlog,
-                                        TimeLimit=timelimit,
-                                        MIPGap=mipgap,
-                                        Presolve=presolve,
-                                        Threads=threads,
-                                        MIPFocus=focus,
-                                        SimplexPricing=1,Heuristics=0.001));
-        end
-    elseif config.SOLVER == "Cbc"
-        error("Does not supoort solver Cbc.")
-    else
-        error("ERROR::solver.jl::init_model_solver()::Unsupport Solver... Change configuration file");
+    if timelimit < 0.0
+        timelimit = driver[:TIMELIMIT]
     end
+
+    if mipgap < 0.0
+        mipgap = driver[:OPTGAP]
+    end
+
+    if threads < 0.0
+        mipgap = driver[:THREADS]
+    end
+
+    solver = driver[:SOLVER]() # Generate a solver
+    if identify_solver(driver) == "CPLEX"
+        insert_solver_option(solver.options, :CPX_PARAM_TILIM, timelimit)
+        insert_solver_option(solver.options, :CPX_PARAM_SCRIND, showlog)
+        insert_solver_option(solver.options, :CPX_PARAM_EPGAP, mipgap)
+        insert_solver_option(solver.options, :CPX_PARAM_PREIND, presolve)
+        insert_solver_option(solver.options, :CPX_PARAM_THREADS, threads)
+        insert_solver_option(solver.options, :CPX_PARAM_MIPEMPHASIS, focus)
+    elseif identify_solver(driver) == "Gurobi"
+        insert_solver_option(solver.options, :TimeLimit, timelimit)
+        insert_solver_option(solver.options, :OutputFlag, showlog)
+        insert_solver_option(solver.options, :MIPGap, mipgap)
+        insert_solver_option(solver.options, :Presolve, presolve)
+        insert_solver_option(solver.options, :Threads, threads)
+        insert_solver_option(solver.options, :MIPFocus, focus)
+        insert_solver_option(solver.options, :SimplexPricing, 1)
+        insert_solver_option(solver.options, :Heuristics, 0.001)
+    elseif identify_solver(driver) == "Cbc"
+        warn("No special support for Cbc Solver options")
+    elseif identify_solver(driver) == "GLPK"
+        warn("No special support for GLPK Solver options")
+    end
+
+    setsolver(model, solver)
 
     return model
 end
 
+function print_iis_gurobi(m::Model, driver::Dict)
 
-#This subroutine writes down the problem in LP/MPS form
-function writeProblem(m::JuMP.Model, filename::AbstractString="", fileType::AbstractString="")
-	if isempty(filename) == true
-		print(m) #Print model (deafult LP) to screen
-	else
-		if fileType == "LP" || fileType == ""
-			writeLP(m, filename);
-		elseif fileType == "MPS"
-			writeMPS(m, filename);
-		else
-			print("Unkown problem type. Please check input");
-		end
-	end
-end
-
-function solver_lower_bound(m::JuMP.Model)
-
-    lb = 0.0
-    offset = 0.0
-
-	offset = getobjective(m).aff.constant
-    lb = getobjbound(m) + offset
-
-	return lb
-end
-
-function print_iis_gurobi(m::Model)
-
-	if config.SOLVER == "Gurobi"
+	if identify_solver(driver[:SOLVER]) == "Gurobi"
 
 	    grb = MathProgBase.getrawsolver(internalmodel(m))
 	    Gurobi.computeIIS(grb)

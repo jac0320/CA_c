@@ -63,7 +63,7 @@ function perform_one_eval(power, param, stoc, design, designName, exargs, outf, 
     objPool = []
     for i in 1:stoc.S
         evalProblem = eval_formulation(power, param, stoc, [i], design, exargs, targetObj, builtModels[i])
-        solver_config(evalProblem.model,MIPFocus="feasibility", showlog=0, presolve=1)
+        config_solver(evalProblem.model,focus="feasibility", showlog=0, presolve=1)
         status = solve(evalProblem.model, suppress_warnings=true)
         if targetObj == "feasibility"
             if status == :Optimal

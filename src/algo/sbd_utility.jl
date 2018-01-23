@@ -24,7 +24,7 @@ function lineup_join_two_scenario(power::Dict, param::Dict, stoc::stocType, exar
 				# info("($(myid()))[Solved] ~ $testPool")
 			else
 				oneJointSubprob = subprob_formulation(power, param, stoc, testPool, exargs)
-				solver_config(oneJointSubprob.model, license=1, timelimit=config.TIMELIMITIII, mipgap=config.OPTGAP, showlog=config.SHOWLOG, focus="optimality", presolve=1, threads=config.WORKERTHREADS)
+				config_solver(oneJointSubprob.model, license=1, timelimit=config.TIMELIMITIII, mipgap=config.OPTGAP, showlog=config.SHOWLOG, focus="optimality", presolve=1, threads=config.WORKERTHREADS)
 
 				status = solve(oneJointSubprob.model, suppress_warnings=true)
 				if status == :Infeasible
@@ -85,7 +85,7 @@ end
 function lineup_solve_pair(power::Dict, param::Dict, stoc::stocType, exargs::Dict, pair, subprob_formulation)
 
 	onePairSubprob = subprob_formulation(power, param, stoc, pair, exargs)
-	solver_config(onePairSubprob.model, license=1, timelimit=config.TIMELIMITIII, mipgap=config.OPTGAP, showlog=config.SHOWLOG, focus="optimality", presolve=1, threads=config.WORKERTHREADS)
+	config_solver(onePairSubprob.model, license=1, timelimit=config.TIMELIMITIII, mipgap=config.OPTGAP, showlog=config.SHOWLOG, focus="optimality", presolve=1, threads=config.WORKERTHREADS)
 	status = solve(onePairSubprob.model, suppress_warnings=true)
 	if status == :Infeasible
 		print_iis_gurobi(onePairSubprob.model)
@@ -338,7 +338,7 @@ function sbd_collect_column(power::Dict, param::Dict, stoc::stocType, exargs::Di
 	design.active = true
 	design.source = sourcePool
 	design.cost = getobjectivevalue(subprob.model)
-	design.lb = solver_lower_bound(subprob.model)
+	design.lb = subprob.model.objBound
 	design.time = getsolvetime(subprob.model)
 	design.feamap = zeros(Int, exargs[:S])
 
@@ -377,7 +377,7 @@ function sbd_ubPool_solve(power::Dict, param::Dict, stoc::stocType, exargs::Dict
 		ubPoolProb = dsp_formulation(power, param, stoc, ubPool, exargs)
 		warmstart_heuristic(ubPoolProb, power, param, stoc, exargs, selection=ubPool)
 		info("[SBD] UB Pool todo-> $ubPool")
-		solver_config(license=config.ENVS,
+		config_solver(license=config.ENVS,
 						ubPoolProb.model,
 						timelimit=timeleft,
 						mipgap=config.OPTGAP,
@@ -503,7 +503,7 @@ function sbd_solve_master(power::Dict, param::Dict, stoc::stocType, exargs::Dict
 		master = sbd_master_formulation(power, param, stoc, exargs, exargs[:eps], [], prevSolution)
 	end
 
-	solver_config(master.model, license=config.ENVS, timelimit=config.TIMELIMITII, mipgap=config.OPTGAP, showlog=1, focus="optimality", presolve=1, threads=16)
+	config_solver(master.model, license=config.ENVS, timelimit=config.TIMELIMITII, mipgap=config.OPTGAP, showlog=1, focus="optimality", presolve=1, threads=16)
 	status = solve(master.model)
 
 	if status == :Infeasible
@@ -511,7 +511,7 @@ function sbd_solve_master(power::Dict, param::Dict, stoc::stocType, exargs::Dict
 		error("ERROR|alg_sbd.jl|sbd_heuristic()|master proble infeasible, check formulation");
 	else
 		masterDesign = get_design(master.model)
-		masterDesign.lb = solver_lower_bound(master.model)
+		masterDesign.lb = master.model.objBound
 		masterDesign.time = getsolvetime(master.model)
 		masterDesign.cost = getobjectivevalue(master.model)
 		non, masterDesign.coverage, non, feaPool = check_feasible(power, param, stoc, masterDesign, exargs, [], precheck=true)

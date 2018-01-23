@@ -34,7 +34,7 @@ end
 function enumerate_solve_subset(power::Dict, param::Dict, stoc::stocType, exargs::Dict, subset)
 
 	oneJointSubprob = sbd_subprob_formulation(power, param, stoc, subset, exargs)
-	solver_config(oneJointSubprob.model, timelimit=config.TIMELIMITIII, mipgap=0.01, showlog=0, focus="optimality", presolve=1, threads=config.WORKERTHREADS)
+	config_solver(oneJointSubprob.model, timelimit=config.TIMELIMITIII, mipgap=0.01, showlog=0, focus="optimality", presolve=1, threads=config.WORKERTHREADS)
 	status = solve(oneJointSubprob.model, suppress_warnings=true)
 	obj = getobjectivevalue(oneJointSubprob.model)
 

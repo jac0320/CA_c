@@ -1,83 +1,68 @@
-function write_output_files(power::Dict, param::Dict, stoc::stocType, solution, exargs::Dict)
+function write_output_files(power::Dict, param::Dict, stoc::stocType, solution, driver::Dict)
 
-	if config.FILEOUTPUT == true
+	designFilepath = string(driver[:OUTPUTPATH], "design_", driver[:NAME],".json")
+	paramFilepath = string(driver[:OUTPUTPATH], "param_", driver[:NAME],".json")
+	stocFilepath = string(driver[:OUTPUTPATH], "stoc_",stoc.S,"_",driver[:STOCHMODE],"_",driver[:NAME],".json")
 
-		# Assign File Output Strings
-		designFilepath = string(config.OUTPUTPATH, exargs[:OUTPATH], "design_", exargs[:NAME],".json")
-		paramFilepath = string(config.OUTPUTPATH, exargs[:OUTPATH], "param_", exargs[:NAME],".json")
-		stocFilepath = string(config.OUTPUTPATH, exargs[:OUTPATH], "stoc_",stoc.S,"_",exargs[:STOCHMODE],"_",exargs[:NAME],".json")
+	write_json(power,designFilepath)
 
-		# See if there already exist such a file ::
-		try
-			rm(designFilepath)
-		catch e
-			info("Creating new design output file.")
-		end
-		write_json(power,designFilepath)
-
-		if exargs[:PARAMWRITE]
-			try
-				rm(paramFilepath)
-			catch e
-				info("Creating new param output file")
-			end
-			write_json(param,paramFilepath)
-		end
-
-		# Write scnearios down
-		if exargs[:STOCHWRITE]
-			try
-				rm(stocFilePath)
-			catch e
-				println("Creating new stoc output file")
-			end
-			stocDict = Dict()
-			stocDict["SS"] = Dict()
-			stocDict["SL"] = Dict()
-			for s in 1:stoc.S
-				stocDict["SS"] = stoc.scenarios[s].data["SS"]
-				stocDict["SL"] = stoc.scenarios[s].data["SL"]
-			end
-			write_json(stocDict,stocFilepath)
-		end
-
-		# Write Design Details
-		designDict = Dict()
-        if isa(solution, solnType)
-			designDict["pg"] = solution.primal[:pg]
-			designDict["h"] = solution.primal[:h]
-		elseif isa(solution, designType)
-			designDict["pg"] = solution.pg
-			designDict["h"] = solution.h
-		else
-			error("Unkown solution data structure.")
-		end
-		write_json(designDict, designFilepath)
+	# Write Design Details
+	designDict = Dict()
+    if isa(solution, solnType)
+		designDict["pg"] = solution.primal[:pg]
+		designDict["h"] = solution.primal[:h]
+	elseif isa(solution, designType)
+		designDict["pg"] = solution.pg
+		designDict["h"] = solution.h
+	else
+		error("Unkown solution data structure.")
 	end
+	write_json(designDict, designFilepath)
+
+	return
 end
 
-function screen_output(solution::solnType)
-	if config.SCREENSHOW == true
-		info(":: Solution pg :: ")
-		println(solution.primal[:pg])
-		info(":: Solution h :: ")
-		println(solution.primal[:h])
-		flush(STDOUT)
-	end
+function summary_driver_arguments(param::Dict, stoc::stocType, driver::Dict)
+
+    info("Problem Instance      : ", driver[:PROBLEM])
+    info("Characteristic        : ", driver[:MODEL])
+    info("Stochastic Mode       : ", driver[:STOCHMODE])
+    info("Algorithm             : ", driver[:ALGO])
+    info("Time Periods(T)       : ", driver[:T])
+    info("Scenario Count(S)     : ", driver[:S])
+    info("Risk(eps)             : ", driver[:eps])
+	info("Demand Change         : ", driver[:DEMANDLambda])
+    info("Shedding Allowing     : ", driver[:SHEDLambda])
+	info("Congestion            : ", driver[:CONGESTLambda])
+	info("Angle Shift Limit     : ", driver[:ANGLESHIFTLambda])
+	info("Discounting Cost      : ", driver[:DISCOUNTLambda])
+	info("Cost Ratio (expand)   : ", driver[:COSTLambda])
+	info("Time Limit L1         : ", driver[:TIMELIMIT])
+	info("Time Limit L2         : ", driver[:TIMELIMITII])
+	info("Time Limit L3         : ", driver[:TIMELIMITIII])
+	info("Parallel Indicator    : ", driver[:PARALLEL])
+	info("Workers Utilized      : ", driver[:WORKERS])
+    info("Single Worker Threads : ", driver[:WORKERTHREADS])
+	info("Warm Start            : ", driver[:WARMSTART])
+	info("Job created at        : ", now())
+	info("Job Output Name       : ", driver[:NAME])
+	info("Julia Version         : ", VERSION)
+	info("CPU Cores             : ", Sys.CPU_CORES)
+	info("Machine INFO          : ", Sys.MACHINE)
+	info("CPU Summary           : ")
+	Sys.cpu_summary()
+
+	return
 end
 
 function write_json(content::Dict,filename::AbstractString, pathprefix::AbstractString="")
 
-	# File name must have .suffix
-	if isempty(pathprefix)
-		wf = open(filename, "w")
-	else
-		wf = open(pathprefix,"/",filename,"w")
-	end
+	isempty(pathprefix) ? wf = open(filename, "w") : wf = open(pathprefix,"/",filename,"w")
 
 	write(wf, JSON.json(content))
 	close(wf)
 
+	return
 end
 
 
@@ -117,11 +102,11 @@ function get_rhs(model::JuMP.Model)
     return rhs
 end
 
-function get_cache_code(algo::AbstractString, stage::AbstractString, exargs::Dict)
+function get_cache_code(algo::AbstractString, stage::AbstractString, driver::Dict)
 
 	cacheCode = "./experiments/cache/"
 
-	cacheCode = string(cacheCode, exargs[:PROBLEM], exargs[:MODEL], replace(exargs[:STOCHFILE],".json",""))
+	cacheCode = string(cacheCode, driver[:PROBLEM], driver[:MODEL], replace(driver[:STOCHFILE],".json",""))
 	cacheCode = string(cacheCode, algo, stage)
 
 	return cacheCode

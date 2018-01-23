@@ -1,25 +1,26 @@
-function get_scenarios(exargs::Dict)
+function get_scenarios(driver::Dict)
 
-    srand(config.RUNSEED); #Set random seed
-    if !isempty(exargs[:STOCHFILE])
-        scenarios = read_stoch_file(exargs[:STOCHFILE], exargs)
-        exargs[:S] = scenarios.S
+    if !isempty(driver[:STOCHFILE])
+        scenarios = read_stoch_file(driver[:STOCHFILE], driver)
+        driver[:S] = scenarios.S
     else
         error("No scenario file indicated.")
     end
 
-    return reprocess_scenarios(scenarios, exargs)
+    return reprocess_scenarios(scenarios, driver)
 end
 
-function read_stoch_file(filepath::String, exargs::Dict)
+function read_stoch_file(filepath::String, driver::Dict)
 
-    info("Stochastic file input :: $filepath")
     if isfile(filepath)
         sinput = JSON.parsefile(filepath)
-    elseif isfile(joinpath(config.INPUTPATH, exargs[:PROBLEM],filepath))
-        sinput = JSON.parsefile(joinpath(config.INPUTPATH, exargs[:PROBLEM], filepath))
-    elseif isfile(joinpath(config.INPUTPATH, filepath))
-        sinput = JSON.parsefile(joinpath(config.INPUTPATH,filepath))
+        info("Stochastic file input :: $filepath")
+    elseif isfile(joinpath(driver[:INPUTPATH], driver[:PROBLEM], filepath))
+        sinput = JSON.parsefile(joinpath(driver[:INPUTPATH], driver[:PROBLEM], filepath))
+        info("Stochastic file input :: $(joinpath(driver[:INPUTPATH], driver[:PROBLEM], filepath))")
+    elseif isfile(joinpath(driver[:INPUTPATH], filepath))
+        sinput = JSON.parsefile(joinpath(driver[:INPUTPATH],filepath))
+        info("Stochastic file input :: $(joinpath(driver[:INPUTPATH],filepath))")
     else
         error("ERROR|stoch.jl|read_stoch_file()|Undetected scenario file. Check your input arguments.")
     end
@@ -38,11 +39,10 @@ function read_stoch_file(filepath::String, exargs::Dict)
 
     stoc = stocType(S, T, B)
 
-    userT = exargs[:T]
+    userT = driver[:T]
     if userT > stoc.T
-        error("Trying to run model with high resolution failed. Scenario files is with less.")
+        error("Model resolution too high.")
     elseif userT == stoc.T
-        info("User model resolution matchs scenario inputs. No additional action needed.")
         userSteps = [1:stoc.T;]
     else
         info("User model resolution coraser. With fixed horizon... resampling by corasen resolutions.")
@@ -79,27 +79,28 @@ function read_stoch_file(filepath::String, exargs::Dict)
     return stoc
 end
 
-function reprocess_scenarios(stoc::stocType, exargs::Dict)
+function reprocess_scenarios(stoc::stocType, driver::Dict)
 
-    isempty(exargs[:STOCHMODE]) && return stoc
+    isempty(driver[:STOCHMODE]) && return stoc
 
-    if exargs[:STOCHMODE] == "max"
+    if driver[:STOCHMODE] == "max"
         return downscale_scenarios(stoc, 100)
-    elseif exargs[:STOCHMODE] == "min"
+    elseif driver[:STOCHMODE] == "min"
         return downscale_scenarios(stoc, 1)
-    elseif exargs[:STOCHMODE] == "median"
+    elseif driver[:STOCHMODE] == "median"
         return downscale_scenarios(stoc, 50)
-    elseif exargs[:STOCHMODE] == "ave"
+    elseif driver[:STOCHMODE] == "ave"
         return downscale_scenarios(stoc, 0.0)
-    elseif ismatch(r"\d+-dev", exargs[:STOCHMODE])
-        deviation = Float(split(exargs[:STOCHMODE], "-")[1])
+    elseif ismatch(r"\d+-dev", driver[:STOCHMODE])
+        deviation = Float(split(driver[:STOCHMODE], "-")[1])
         return downscale_scenarios(stoc, deviation)
-    elseif ismatch(r"\d+-perc", exargs[:STOCHMODE])
-        perc = Int(split(exargs[:STOCHMODE], "-")[1])
+    elseif ismatch(r"\d+-perc", driver[:STOCHMODE])
+        perc = Int(split(driver[:STOCHMODE], "-")[1])
         return downscale_scenarios(stoc, perc)
     else
-        error("Unknown stochastic mode.")
+        return
     end
+
 end
 
 function downscale_scenarios(stoc::stocType, deviation::Float64)
@@ -167,33 +168,35 @@ function null_scenario_stoc(B::Int, T::Int)
     return s
 end
 
-function summary_scenarios(stoc::stocType, param::Dict)
+function summary_scenarios(stoc::stocType, param::Dict, driver::Dict)
 
-    info("[STOCH] Total Scenario $(stoc.S)")
-    info("[STOCH] Total Time Step Count $(stoc.T)")
-    info("[STOCH] Data shape => SLR $(size(stoc.scenarios[1].data["SL"]))")
-    info("[STOCH] Data shape => SS $(size(stoc.scenarios[1].data["SS"]))")
-    info("[STOCH] Minimum Bus Elevation => $(minimum(param[:Ele]))")
-    max_slr = 0.0
-    for s in 1:stoc.S
-        max_slr = max(max_slr, maximum(stoc.scenarios[s].data["SL"]))
-    end
-    info("[STOCH] MAX-SLR => $(max_slr)")
-    info("[STOCH] BUS under MAX-SLR => $(length(param[:Ele][param[:Ele] .<= max_slr]))")
-    for s in 1:stoc.S
-        info("[STOCH][S=$s] SLR $(stoc.scenarios[s].data["SL"])")
-        info("[STOCH][S=$s] BUS under SS ")
-        for t in 1:stoc.T
-            ss_bus_cnt = 0
-            for b in 1:param[:B]
-                if param[:Ele][b] < stoc.scenarios[s].data["SS"][b,t]
-                    ss_bus_cnt += 1
-                    info("BUS $(b) surged by $(round(stoc.scenarios[s].data["SS"][b,t]-param[:Ele][b],2))m without protection. (LOAD = $(param[:Pd][b]) | CAP = $(param[:PgUB][b]))")
-                end
-            end
-            println("T$(t)=>$(ss_bus_cnt); ")
+    if driver[:VERBOSE]
+        info("[STOCH] Total Scenario $(stoc.S)")
+        info("[STOCH] Total Time Step Count $(stoc.T)")
+        info("[STOCH] Data shape => SLR $(size(stoc.scenarios[1].data["SL"]))")
+        info("[STOCH] Data shape => SS $(size(stoc.scenarios[1].data["SS"]))")
+        info("[STOCH] Minimum Bus Elevation => $(minimum(param[:Ele]))")
+        max_slr = 0.0
+        for s in 1:stoc.S
+            max_slr = max(max_slr, maximum(stoc.scenarios[s].data["SL"]))
         end
-        print("\n")
+        info("[STOCH] MAX-SLR => $(max_slr)")
+        info("[STOCH] BUS under MAX-SLR => $(length(param[:Ele][param[:Ele] .<= max_slr]))")
+        for s in 1:stoc.S
+            info("[STOCH][S=$s] SLR $(stoc.scenarios[s].data["SL"])")
+            info("[STOCH][S=$s] BUS under SS ")
+            for t in 1:stoc.T
+                ss_bus_cnt = 0
+                for b in 1:param[:B]
+                    if param[:Ele][b] < stoc.scenarios[s].data["SS"][b,t]
+                        ss_bus_cnt += 1
+                        info("BUS $(b) surged by $(round(stoc.scenarios[s].data["SS"][b,t]-param[:Ele][b],2))m without protection. (LOAD = $(param[:Pd][b]) | CAP = $(param[:PgUB][b]))")
+                    end
+                end
+                println("T$(t)=>$(ss_bus_cnt); ")
+            end
+            print("\n")
+        end
     end
 
     return
@@ -211,14 +214,14 @@ function write_stocType_json(stoc::stocType, filename::AbstractString)
         outputDict["SS"][s] = stoc.scenarios[s].data["SS"]
     end
 
-    f = open(joinpath(config.OUTPUTPATH, filename), "w")
+    f = open(joinpath(driver[:OUTPUTPATH], filename), "w")
     JSON.print(f, outputDict)
     close(f)
 
     return
 end
 
-function subset_scenarios(stoc::stocType, subset::Vector, exargs::Dict)
+function subset_scenarios(stoc::stocType, subset::Vector, driver::Dict)
 
     N = length(subset)
     s = stocType(N, stoc.T, stoc.B)
@@ -232,14 +235,14 @@ function subset_scenarios(stoc::stocType, subset::Vector, exargs::Dict)
     return s
 end
 
-subset_scenarios(stoc::stocType, subset::Set, exargs::Dict) = subset_scenarios(stoc, subset, exargs)
+subset_scenarios(stoc::stocType, subset::Set, driver::Dict) = subset_scenarios(stoc, subset, driver)
 
-function subset_scenarios(stoc::stocType, subset::Int, exargs::Dict)
+function subset_scenarios(stoc::stocType, subset::Int, driver::Dict)
 
     subset > stoc.S && error("subsetting more than original set")
     selected = randperm(stoc.S)[1:subset]
 
-    return subset_scenarios(stoc, selected, exargs)
+    return subset_scenarios(stoc, selected, driver)
 end
 
 function append_scenarios(stoc::stocType, exstoc::stocType)

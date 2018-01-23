@@ -2,7 +2,7 @@ function read_power(exargs::Dict)
 
 	pname = exargs[:PROBLEM]
 	if pname in ["ieee14", "ieee118", "ieee118p", "gs4", "lmbd3"]
-		power = PowerModels.parse_file(joinpath(".", "instance", "$(pname).m"))
+		power = PowerModels.parse_file(joinpath(Pkg.dir("ClimateAdaptation"), "instance", "$(pname).m"))
 		info("Finish reading $(pname) power data...")
 		return power
 	else
@@ -12,8 +12,8 @@ end
 
 function read_parameters(power::Dict, stoc::stocType, exargs::Dict)
 
-    if isfile(joinpath(".","instance","$(exargs[:PROBLEM])_param.json"))
-        pF = JSON.parsefile(joinpath(".","instance","$(exargs[:PROBLEM])_param.json"))
+    if isfile(joinpath(Pkg.dir("ClimateAdaptation"),"instance","$(exargs[:PROBLEM])_param.json"))
+        pF = JSON.parsefile(joinpath(Pkg.dir("ClimateAdaptation"),"instance","$(exargs[:PROBLEM])_param.json"))
     else
         error("ERROR|param.jl|import_param()|No parameter file detected.")
     end
@@ -86,6 +86,7 @@ function init_parameters(power::Dict, stoc::stocType, exargs::Dict)
     param[:EDGE]    = zeros(Int, B, B)		# 0/1 Matrix to indicate the line condition
     param[:Edge]    = Dict()
     param[:Lcap]	= zeros(Float64, B, B)	# Line Capacity :: ?Power datasol
+	param[:lineX]	= zeros(Float64, B, B)
     param[:AngleLimit] = pi;
     param[:AngleShiftLimit] = pi / 180 * exargs[:ANGLESHIFTLambda];
     param[:SHEDLambda] = exargs[:SHEDLambda];
@@ -171,6 +172,11 @@ function populate_edge(param::Dict, exargs::Dict)
             push!(param[:Edge][from]["out"],to)
         end
     end
+
+	E = length(param[:line])
+	for l in 1:E
+		param[:lineX][param[:line][l]["f_bus"], param[:line][l]["t_bus"]] = param[:line][l]["br_x"] / 100
+	end
 
     return param
 end

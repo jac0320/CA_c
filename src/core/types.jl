@@ -1,33 +1,3 @@
-type configType
-	INPUTPATH 	   ::AbstractString
-	OUTPUTPATH	   ::AbstractString
-	TIMELIMIT	   ::Float64
-	TIMELIMITII	   ::Float64
-	TIMELIMITIII   ::Float64
-	SOLVER		   ::Any
-    ENVS           ::Any
-	RUNSEED		   ::Int
-	TOLERANCE	   ::Float64
-	MAXITER        ::Int
-	SHOWLOG		   ::Int
-	SCREENSHOW	   ::Int
-	BIGMINT		   ::Int
-	BIGMDOUBLE	   ::Float64
-	FILEOUTPUT	   ::Int
-	CONVERGENCE    ::Float64
-	VERBOSE		   ::Int
-	PARALLEL       ::Bool
-	WORKERS		   ::Array
-    JOBPERWORKER   ::Int
-	OPTGAP		   ::Float64
-	THREADS		   ::Int
-    MAINTHREADS    ::Int
-    WORKERTHREADS  ::Int
-    USESBDNORISK   ::Bool
-	WARMSTART	   ::Bool
-	configType() = new()
-end
-
 type scenarioType
 	ind::Int				# Scenario index
 	data::Dict				# More general representation of the stochastic data
@@ -68,35 +38,12 @@ type solnType
 end
 
 # ============================================================================ #
-
 # JuMP package must be included for this to work
 type oneProblem
-	name		::AbstractString 	# instance name
-	T			::Int				# total time steps
-	S			::Int				# total sample size
-	B			::Int
-	eps			::Float64			# risk measurement
-	stage		::Int				# stochastic stage
-	cols		::Int
-	rows		::Int
 	vars		::Dict				# Variable Management
-	param		::Dict				# store all user-defined parameters {:Symbol, values}
+	param		::Dict				# Do I need to keep this?
 	model		::JuMP.Model		# JuMP optimization model
-	samples		::Any				# samples this problem used
-	builder		::Any				# Unified model builder
-	varBuilder	::Function			# Advanced
-	consBuilder ::Function			# Advanced
-	objBuilder	::Function			# Advanced
 	status 		::Any				# Optimality Indicator
-	objective	::Float64			# Objective value
-	oneProblem() = new()			# __init__()
+	oneProblem() = new(Dict(), Dict(),Model(),:None)
 end
 # ============================================================================ #
-
-type cellType
-	name		::AbstractString
-	master		::oneProblem
-	subprob 	::oneProblem
-	stage		::Int
-	cellType() = new()
-end

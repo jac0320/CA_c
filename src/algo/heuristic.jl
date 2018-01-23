@@ -244,7 +244,7 @@ function extreme(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwargs.
     expandProb = attach_scenario(expandProb, zeroStoc, [1], exargs[:MODEL], 0.0, exargs)
 
     info("[EXTREME]Checking expansion plan using basic optimization...")
-    solver_config(expandProb.model, showlog=1, presolve=1, mipgap=0.0)
+    config_solver(expandProb.model, showlog=1, presolve=1, mipgap=0.0)
     status = solve(expandProb.model, suppress_warnings=true)
 
     writeLP(expandProb.model,"95p.lp")
