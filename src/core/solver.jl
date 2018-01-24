@@ -53,7 +53,7 @@ function config_solver(model::JuMP.Model, driver::Dict;
     end
 
     if threads < 0.0
-        mipgap = driver[:THREADS]
+        threads = driver[:THREADS]
     end
 
     solver = driver[:SOLVER]() # Generate a solver
@@ -86,7 +86,7 @@ end
 
 function print_iis_gurobi(m::Model, driver::Dict)
 
-	if identify_solver(driver[:SOLVER]) == "Gurobi"
+	if identify_solver(driver) == "Gurobi"
 
 	    grb = MathProgBase.getrawsolver(internalmodel(m))
 	    Gurobi.computeIIS(grb)
@@ -118,7 +118,7 @@ function print_iis_gurobi(m::Model, driver::Dict)
 	    end
 
 	else
-		info("Current solver doesn't support IIS.")
+		warning("Current solver doesn't support IIS.")
 	end
 
 end

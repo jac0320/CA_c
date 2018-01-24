@@ -11,7 +11,7 @@ function lineup_join_two_scenario(power::Dict, param::Dict, stoc::stocType, exar
 		# Prepare a vector of problems for repetitvely checking
 		for ss = 1:stoc.S
 			allSubprobs[ss] = oneProblem()
-			allSubprobs[ss] = sbd_base_formulation(power, param, stoc)
+			allSubprobs[ss] = sp_formulation(power, param, stoc)
 			allSubprobs[ss] = attach_scenario(allSubprobs[ss], stoc, [ss], exargs[:MODEL], 0.0, exargs, subprobType="tight")
 		end
 	end
@@ -151,7 +151,7 @@ function lineup_groupdesign_fea(power::Dict, param::Dict, stoc::stocType, exargs
 	# Prepare a vector of problems for repetitvely checking
 	for ss = 1:stoc.S
 		allSubprobs[ss] = oneProblem()
-		allSubprobs[ss] = sbd_base_formulation(power, param, stoc)
+		allSubprobs[ss] = sp_formulation(power, param, stoc)
 		allSubprobs[ss] = attach_scenario(allSubprobs[ss], stoc, [ss], exargs[:MODEL], 0.0, exargs, subprobType="tight")
 	end
 

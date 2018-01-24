@@ -52,7 +52,6 @@ function get_design(model::JuMP.Model)
     return design
 end
 
-# This subroutine evaluates a certain design's cost given a set of parameters
 function get_design_cost(design, param::Dict)
 
     if isa(design, designType)

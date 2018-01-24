@@ -105,8 +105,10 @@ end
 
 function downscale_scenarios(stoc::stocType, deviation::Float64)
 
-    s = stocType(1, stoc.T, stoc.B)
-    s.scenarios[1] = scenarioType(1, Dict("SL"=>zeros(Float64,stoc.T),"SS"=>zeros(Float64,stoc.B,stoc.T)), 1.0)
+    B, T = stoc.T, stoc.B
+
+    dstoc = stocType(1, stoc.T, stoc.B)
+    dstoc.scenarios[1] = scenarioType(1, Dict("SL"=>zeros(Float64,stoc.T),"SS"=>zeros(Float64,stoc.B,stoc.T)), 1.0)
 
     slr_sort = zeros(Float64, stoc.S)
     ss_sort = zeros(Float64, stoc.S)
@@ -117,28 +119,30 @@ function downscale_scenarios(stoc::stocType, deviation::Float64)
         end
         slr_std = std(slr_sort)
         slr_mean = mean(slr_sort)
-        s.scenarios.data["SL"][t] = slr_mean + deviation*slr_std
+        dstoc.scenarios[1].data["SL"][t] = slr_mean + deviation*slr_std
 
         for b in 1:B
             for s in 1:stoc.S
-                ss_sort = stoc.scenarios[s].data["SS"][b,t]
+                ss_sort[s] = stoc.scenarios[s].data["SS"][b,t]
             end
-            s.scenario.data["SS"][b,t] = select(sstemp_bnew, Int(rank))
+            dstoc.scenario.data["SS"][b,t] = select(ss_sort, Int(rank))
             ss_std = std(ss_sort)
             ss_mean = mean(ss_sort)
-            s.scenario.data["SS"][b,t] = ss_mean + deviation*ss_std
+            dstoc.scenarios[1].data["SS"][b,t] = ss_mean + deviation*ss_std
         end
     end
 
-    return s
+    return dstoc
 end
 
 function downscale_scenarios(stoc::stocType, perc::Int)
 
+    B, T = stoc.T, stoc.B
+
     rank = max(floor((perc/100) * stoc.S), 1)
 
-    s = stocType(1, stoc.T, stoc.B)
-    s.scenarios[1] = scenarioType(1, Dict("SL"=>zeros(Float64,stoc.T),"SS"=>zeros(Float64,stoc.B,stoc.T)), 1.0)
+    dstoc = stocType(1, stoc.T, stoc.B)
+    dstoc.scenarios[1] = scenarioType(1, Dict("SL"=>zeros(Float64,stoc.T),"SS"=>zeros(Float64,stoc.B,stoc.T)), 1.0)
 
     slr_sort = zeros(Float64, stoc.S)
     ss_sort = zeros(Float64, stoc.S)
@@ -147,17 +151,17 @@ function downscale_scenarios(stoc::stocType, perc::Int)
         for s in 1:stoc.S
             slr_sort[s] = stoc.scenarios[s].data["SL"][t]
         end
-        s.scenarios.data["SL"][t] = select(sltempnew, rank)
+        dstoc.scenarios[1].data["SL"][t] = select(slr_sort, Int(rank))
 
         for b in 1:B
             for s in 1:stoc.S
-                ss_sort = stoc.scenarios[s].data["SS"][b,t]
+                ss_sort[s] = stoc.scenarios[s].data["SS"][b,t]
             end
-            s.scenario.data["SS"][b,t] = select(sstemp_bnew, Int(rank))
+            dstoc.scenarios[1].data["SS"][b,t] = select(ss_sort, Int(rank))
         end
     end
 
-    return s
+    return dstoc
 end
 
 function null_scenario_stoc(B::Int, T::Int)

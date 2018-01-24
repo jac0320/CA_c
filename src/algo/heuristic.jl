@@ -11,7 +11,7 @@ function reactor(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwargs.
 
     # Solve the no hurricane scenario for a expansion plan
     expandProb = oneProblem()
-    expandProb = sbd_base_formulation(power, param, zeroStoc)
+    expandProb = sp_formulation(power, param, zeroStoc)
     expandProb = attach_scenario(expandProb, zeroStoc, [1], exargs[:MODEL], 0.0, exargs)
     info("[REACTOR]Checking expansion plan using optimization...")
     status = solve(expandProb.model, suppress_warnings=true)
@@ -82,7 +82,7 @@ function highland(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwargs
 
     # Solve the no hurricane scenario for a expansion plan
     expandProb = oneProblem()
-    expandProb = sbd_base_formulation(power, param, zeroStoc)
+    expandProb = sp_formulation(power, param, zeroStoc)
     expandProb = attach_scenario(expandProb, zeroStoc, [1], exargs[:MODEL], 0.0, exargs)
 
     # meanEle = mean(param[:Ele])
@@ -167,7 +167,7 @@ function bathtub(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwargs.
 
     # Solve the no hurricane scenario for a expansion plan
     expandProb = oneProblem()
-    expandProb = sbd_base_formulation(power, param, zeroStoc)
+    expandProb = sp_formulation(power, param, zeroStoc)
     expandProb = attach_scenario(expandProb, zeroStoc, [1], exargs[:MODEL], 0.0, exargs)
 
     info("[BATHTUB]Checking expansion plan using basic optimization...")
@@ -240,7 +240,7 @@ function extreme(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwargs.
 
     # Solve the no hurricane scenario for a expansion plan
     expandProb = oneProblem()
-    expandProb = sbd_base_formulation(power, param, zeroStoc)
+    expandProb = sp_formulation(power, param, zeroStoc)
     expandProb = attach_scenario(expandProb, zeroStoc, [1], exargs[:MODEL], 0.0, exargs)
 
     info("[EXTREME]Checking expansion plan using basic optimization...")
@@ -305,7 +305,7 @@ function warmstart_heuristic(prob::oneProblem, power::Dict, param::Dict, stoc::s
 
     # Solve the no hurricane scenario for a expansion plan
     expandProb = oneProblem()
-    expandProb = sbd_base_formulation(power, param, zeroStoc)
+    expandProb = sp_formulation(power, param, zeroStoc)
     expandProb = attach_scenario(expandProb, zeroStoc, [1], exargs[:MODEL], 0.0, exargs)
 
     status = solve(expandProb.model, suppress_warnings=true)

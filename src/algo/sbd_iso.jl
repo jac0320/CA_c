@@ -65,7 +65,7 @@ function isolate_stage(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 		info("[ISO] WARMSTARTing feasibility check process...")
 		for s in selection
 			allSubprobs[s] = oneProblem()
-			allSubprobs[s] = sbd_base_formulation(power, param, stoc)
+			allSubprobs[s] = sp_formulation(power, param, stoc)
 		 	allSubprobs[s] = attach_scenario(allSubprobs[s], stoc, [s], exargs[:MODEL], 0.0, exargs, subprobType="tight")
 		end
 		for s in selection

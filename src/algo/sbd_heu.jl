@@ -153,7 +153,7 @@ function improver_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 			# Prepare a vector of problems for repetitvely checking
 			for ss = 1:stoc.S
 				allSubprobs[ss] = oneProblem()
-				allSubprobs[ss] = sbd_base_formulation(power, param, stoc)
+				allSubprobs[ss] = sp_formulation(power, param, stoc)
 				allSubprobs[ss] = attach_scenario(allSubprobs[ss], stoc, [ss], exargs[:MODEL], 0.0, exargs, subprobType="tight")
 			end
 			for i in 1:length(spinningPairDesigns)
@@ -410,7 +410,7 @@ function partial_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 			# Prepare a vector of problems for repetitvely checking
 			for ss = 1:stoc.S
 				allSubprobs[ss] = oneProblem()
-				allSubprobs[ss] = sbd_base_formulation(power, param, stoc)
+				allSubprobs[ss] = sp_formulation(power, param, stoc)
 				allSubprobs[ss] = attach_scenario(allSubprobs[ss], stoc, [ss], exargs[:MODEL], 0.0, exargs, subprobType="tight")
 			end
 			for i in 1:length(partialPairDesigns)

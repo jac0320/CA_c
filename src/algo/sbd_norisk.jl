@@ -34,7 +34,7 @@ function sbd_norisk(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 	info("[SBD-NORISK] creating slackness problems...")
 	for ss = 1:stoc.S
 		allSubprobs[ss] = oneProblem()
-		allSubprobs[ss] = sbd_base_formulation(power, param, stoc)
+		allSubprobs[ss] = sp_formulation(power, param, stoc)
 		allSubprobs[ss] = attach_scenario(allSubprobs[ss], stoc, [ss], exargs[:MODEL], 0.0, exargs, subprobType="slackness")
 	end
 

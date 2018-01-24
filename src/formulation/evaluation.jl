@@ -23,7 +23,7 @@ function eval_formulation(power::Dict, param::Dict, stoc::stocType, scenario, so
 	end
 
 	# Construct a simple subproblem for testing a scenario's user-specific objective
-	evalProb = sbd_base_formulation(power, param, stoc, soln, nothing, builtModel)
+	evalProb = sp_formulation(power, param, stoc, soln, nothing, builtModel)
 
 	# ============================= NEW MODIFIED SECTION ================================ #
 	@assert length(scenario) == 1

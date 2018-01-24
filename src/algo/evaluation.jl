@@ -31,7 +31,7 @@ function evaluation(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwar
     warm_start = time()
     for s = 1:stoc.S
         allSubprobs[s] = oneProblem()
-        allSubprobs[s] = sbd_base_formulation(power, param, stoc)
+        allSubprobs[s] = sp_formulation(power, param, stoc)
         allSubprobs[s] = attach_scenario(allSubprobs[s], stoc, [s], exargs[:MODEL], 0.0, exargs, subprobType="free")
         @objective(allSubprobs[s].model, Min, 0.0)
     end

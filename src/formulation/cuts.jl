@@ -1,11 +1,10 @@
-function trim_bounds(prob, stoc, exargs; selection=[])
+function trim_bounds(prob::oneProblem, param::Dict, stoc::stocType, driver::Dict; selection=[])
 
-    isempty(selection) ? selection=[1:stoc.S;] : selection=selection
+    isempty(selection) ? selection=[1:param[:S];] : selection=selection
 
     protected_bus = []
 
-    B = prob.param[:B]
-    T = prob.param[:T]
+    B, T = param[:B], param[:T]
     g_lim = zeros(B)
     h_u_lim = zeros(B)
     worst_ss = zeros(B)
@@ -21,14 +20,11 @@ function trim_bounds(prob, stoc, exargs; selection=[])
 
     # Using worst_ss conclude the upper bounds for h
     for b in 1:B
-        h_u_lim[b] = ceil(max.(0.0, worst_ss[b] - prob.param[:Ele][b])/prob.param[:ProM][b])
+        h_u_lim[b] = ceil(max.(0.0, worst_ss[b] - param[:Ele][b])/param[:ProM][b])
     end
 
     # Trim the hardening upper bound with worst_ss
     for b in 1:B
-        # if h_u_lim[b] > 0.0
-        #     println("Regulating BUS $b hardeing upper bounds with $(h_u_lim[b])")
-        # end
         for t in 1:T
             setupperbound(prob.vars[:h][b,t], h_u_lim[b])
         end

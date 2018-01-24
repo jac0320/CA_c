@@ -17,40 +17,29 @@ function base_formulation(prob::Dict, param::Dict, stoc::stocType, exargs::Dict,
 	return base
 end
 
-function cb_model(prob::oneProblem, param::Dict, exargs::Dict, selection=[]; kwargs...)
+function cb_model(prob::oneProblem, param::Dict, exargs::Dict, selection=[], sbtype="free")
 
-	options = Dict(kwargs)
-	haskey(options, :subprobType) ? subprobType = options[:subprobType] : subprobType = "free"
 	isempty(selection) ? selection = [1:param[:S];] : selection = selection
-
 	post_cb_vars(prob, param, selection)
-	post_cb_cons(prob, param, selection, subprobType)
+	post_cb_cons(prob, param, selection, sbtype)
 
 	return prob
 end
 
-function cnf_model(prob::oneProblem, param::Dict, exargs::Dict, selection=[]; kwargs...)
+function cnf_model(prob::oneProblem, param::Dict, exargs::Dict, selection=[], sbtype="free")
 
-	options = Dict(kwargs)
-	haskey(options, :subprobType) ? subprobType = options[:subprobType] : subprobType = "free"
-	haskey(options, :logical) ? logical = options[:logical] : logical = true
 	isempty(selection) ? selection = [1:param[:S];] : selection = selection
-
-	post_cnf_vars(prob, param, selection, subprobType)
-	post_cnf_cons(prob, param, selection, subprobType)
+	post_cnf_vars(prob, param, selection, sbtype)
+	post_cnf_cons(prob, param, selection, sbtype)
 
 	return prob
 end
 
-function dcpf_model(prob::oneProblem, param::Dict, exargs::Dict, selection=[]; kwargs...)
+function dcpf_model(prob::oneProblem, param::Dict, exargs::Dict, selection=[], sbtype="free")
 
-	options = Dict(kwargs)
-
-	haskey(options, :subprobType) ? subprobType = options[:subprobType] : subprobType = "free"
 	isempty(selection) ? selection = [1:param[:S];] : selection = selection
-
-	post_dcpf_vars(prob, param, selection, subprobType)
-	post_dcpf_cons(prob, param, selection, subprobType)
+	post_dcpf_vars(prob, param, selection, sbtype)
+	post_dcpf_cons(prob, param, selection, sbtype)
 
 	return prob
 end
