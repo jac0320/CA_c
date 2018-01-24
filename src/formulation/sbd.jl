@@ -43,48 +43,28 @@ function attach_scenario(prob::oneProblem, param::Dict, sto::stocType, selection
     return prob
 end
 
-function check_feasible(power::Dict, param::Dict, stoc::stocType, soln, driver::Dict, selection=[])
+function check_feasible(param::Dict, stoc::stocType, soln, driver::Dict; selection=[], builtm=nothing)
 
-	infeaPool = []
-	feaPool = []
-	ub = Inf
-	ub_coverage = 0.0
-
-	isempty(selection) ? selection = [1:S;] : selection = selection
-
-	if haskey(options, :builtModel)
-		allSubprobs = options[:builtModel]
-		@assert isa(allSubprobs, Array{oneProblem})
-		@assert length(allSubprobs) == length(selection)
-		builtModel = true
-	else
-		builtModel = false
-	end
-
+	isempty(selection) ? selection = [1:param[:S];] : selection = selection
+	feamap = zeros(Int, param[:S])
 	for s in selection
-		if builtModel
-			@assert length(selection) == stoc.S
-			fix_xbar(allSubprobs[s], param, soln)
-			reason_logical_vars(allSubprobs[s], param, stoc, s)
-			subprob = allSubprobs[s]
+		if builtm != nothing
+			fix_xbar(builtm[s], param, soln)
+			subprob = builtm[s]
 		else
 			subprob = sp_formulation(param, soln)
 			attach_scenario(subprob, param, stoc, [s], driver[:MODEL], driver, sbtype="tight")
-			reason_logical_vars(subprob, param, stoc, s)
 		end
-		config_solver(subprob.model, driver, timelimit=20, focus="feasibility", threads=1)
+		# reason_logical_vars(subprob, param, stoc, s)
+		config_solver(subprob.model, driver, timelimit=20, focus="feasibility",threads=1)
 		status = solve(subprob.model, suppress_warnings=true)
-		status != :Infeasible ? push!(feaPool,s) : push!(infeaPool,s)
+		status != :Infeasible ? feamap[s] = 1 : feamap[s] = 0
 	end
-	@assert length(feaPool) + length(infeaPool) == param[:S]
 
-	ub_coverage = length(feaPool) / param[:S]
-	ub = get_design_cost(soln, param)
-
-	return ub, ub_coverage, infeaPool, feaPool
+	return feamap
 end
 
-function check_slackness(power::Dict, param::Dict, stoc::stocType, soln, driver::Dict, selection=[]; sbtype="free")
+function check_slackness(param::Dict, stoc::stocType, soln, driver::Dict; selection=[], builtm=nothing)
 
 	feaCnt = 0
 	feaDict = Dict()
@@ -97,29 +77,22 @@ function check_slackness(power::Dict, param::Dict, stoc::stocType, soln, driver:
 
 	slackPool = zeros(length(selection))
 
-	if haskey(options, :builtModel)
-		allSubprobs = options[:builtModel]
-		@assert isa(allSubprobs, Array{oneProblem})
-		@assert length(allSubprobs) >= length(selection) # All problems must be presented here
-		builtModel = true
-	else
-		builtModel = false
-	end
-
 	# Performing feasibility check on all scenarios
 	for s in 1:length(selection)
 		slackInd = pop!(selection)
-		if builtModel
-			fix_xbar(allSubprobs[slackInd], param, soln)
-			slackProb = allSubprobs[slackInd]
+		if builtm != nothing
+			fix_xbar(builtm[slackInd], param, soln)
+			slackProb = builtm[slackInd]
 		else
 			slackProb = sp_formulation(param, soln)
 			attach_scenario(slackProb, param, stoc, [slackInd], driver[:MODEL], driver, sbtype="slackness")
-			reason_logical_vars(slackProb, param, stoc, s)
 		end
-		reason_logical_vars(slackProb, param, stoc, s)
+		# reason_logical_vars(slackProb, param, stoc, s)
 		config_solver(slackProb.model, driver, timelimit=180, focus="optimality", threads=1)
+		print(slackProb.model)
+		error("STOP")
 		status = solve(slackProb.model, suppress_warnings=true)
+		status == :Infeasible && print_iis_gurobi(slackProb.model, driver)
 		status == :Infeasible && error("Slackness problem should always be feasible...")
 		push!(slackPool, getobjectivevalue(slackProb.model))
 		abs(slackPool[end]) > 0.001 ? infeaDict[slackInd] = slackPool[end] : feaDict[slackInd] = slackPool[end]
@@ -129,7 +102,7 @@ function check_slackness(power::Dict, param::Dict, stoc::stocType, soln, driver:
 		end
 	end
 
-	return maxSlackIdx, maxSlack, infeaDict, feaDict
+	return maxSlackIdx, infeaDict, feaDict
 end
 
 function sbd_master_formulation(power::Dict, param::Dict, stoc::stocType, driver::Dict, overrideEps=driver[:eps], cuts=[], prevSol=[]; incumbent=Inf)
@@ -182,8 +155,8 @@ function fix_xbar(prob::oneProblem, param::Dict, xbar::designType)
 
 	B, T = param[:B], param[:T]
 
-	@assert size(x_bar.pg) == (B,T)
-	@assert size(x_bar.h) == (B,T)
+	@assert size(xbar.pg) == (B,T)
+	@assert size(xbar.h) == (B,T)
 
 	for i=1:B
 		for j=1:T
@@ -204,11 +177,11 @@ function reason_logical_vars(prob::oneProblem, param::Dict, stoc::stocType, s::I
 
 	for i in 1:B
 		for t in 1:T
-			expandVal = getupperbound(subprob.vars[:pg][i,t])
-			hardenVal = getupperbound(subprob.vars[:h][i,t])
+			expandVal = getupperbound(prob.vars[:pg][i,t])
+			hardenVal = getupperbound(prob.vars[:h][i,t])
 			ss = stoc.scenarios[s].data["SS"][i,t]
 			maxharden = param[:ProM][i]*hardenVal + param[:Ele][i]
-			ss - maxharden > 0 ? subprob.param[:assDet][i,t,1] = 0 : subprob.param[:assDet][i,t,1] = 1
+			ss - maxharden > 0 ? assDet[i,t] = 0 : assDet[i,t] = 1
 			@assert	haskey(param, :aslDet)
 			setupperbound(prob.vars[:a][i,t,1], param[:aslDet][i,t,s] * assDet[i,t])
 			setlowerbound(prob.vars[:a][i,t,1], param[:aslDet][i,t,s] * assDet[i,t])

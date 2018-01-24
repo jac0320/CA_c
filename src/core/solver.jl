@@ -118,7 +118,7 @@ function print_iis_gurobi(m::Model, driver::Dict)
 	    end
 
 	else
-		warning("Current solver doesn't support IIS.")
+		warn("Current solver doesn't support IIS.")
 	end
 
 end

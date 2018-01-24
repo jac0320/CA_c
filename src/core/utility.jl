@@ -65,6 +65,12 @@ function write_json(content::Dict,filename::AbstractString, pathprefix::Abstract
 	return
 end
 
+function show_design(d::designType)
+	isempty(d.feamap) ? scencnt = 0 : scencnt = sum(d.feamap)
+	println("C-$(d.k) | UB $(round(d.cost,3)) | LB $(round(d.lb,3)) | SCEN-CNT $(d.feamap) | COV $(d.coverage) | TIME $(round(d.time,2)) | SRC $(d.source) | STATUS $(d.active)")
+	return
+end
+
 
 function arrarr2mat(arrarr::Array, numType, dimA::Int, dimB::Int)
 

@@ -1,40 +1,30 @@
-"""
-    This subroutine union a set of designs by taking the maximum design
-"""
-function union_design(design_pool::Array; kwargs...)
+function union_design(pool::Array, param::Dict; source::Array=[])
 
-    options = Dict(kwargs)
+    P, B, T, S = length(pool), param[:B], param[:T], param[:S]
 
-    K = length(design_pool)
-    B,T = size(design_pool[1].pg)
+    pg = zeros(Int, B, T)
+    h = zeros(Int, B, T)
+    f = zeros(Int, param[:S])
 
-    design = designType()
-    design.pg = zeros(B, T)
-    design.h = zeros(B, T)
-
-    for k in 1:K
-        for b in 1:B
-            for t in 1:T
-                design.pg[b,t] = max(design_pool[k].pg[b,t], design.pg[b,t])
-                design.h[b,t] = max(design_pool[k].h[b,t], design.h[b,t])
-            end
+    for k in 1:P
+        for b in 1:B, t in 1:T
+            pg[b,t] = max(pool[k].pg[b,t], pg[b,t])
+            h[b,t] = max(pool[k].h[b,t], h[b,t])
+        end
+        for s in 1:S
+            f[s] = max(pool[k].feamap[s], f[s])
         end
     end
 
-    (haskey(options, :param)) && (design.cost = get_design_cost(design, options[:param])[1])
+    id = length(pool) + 1
 
-    # If extra parameters is indicated, it means this union is at higher level which the design has been tested with feasibility
-    if haskey(options, :S)
-        design.feamap = zeros(Int, extras[:S])
-        for s in 1:extras[:S]
-            for k in 1:K
-                # If any one is feasible, then the join is feasible
-                design.feamap[s] = max(design_pool[k].feamap[s], 0)
-            end
-        end
-    end
+    d = designType(id, pg, h)
+    d.feamap = f
+    d.cost = get_design_cost(pg, h, param)
+    d.coverage = sum(d.feamap) / length(d.feamap)
+    d.source = source
 
-    return design
+    return d
 end
 
 # This subroutine parse the design information from a optimization model
@@ -52,7 +42,37 @@ function get_design(model::JuMP.Model)
     return design
 end
 
-function get_design_cost(design, param::Dict)
+function get_design(prob::oneProblem; idx=0, lb=-Inf, time=0.0)
+
+    valPg = convert(Array{Int}, getvalue(prob.vars[:pg]))
+    valH = convert(Array{Int}, getvalue(prob.vars[:h]))
+    d = designType(idx, sparse(valPg), sparse(valH), getobjectivevalue(prob.model))
+    d.lb = lb
+    d.time = time
+
+    return d
+end
+
+function get_design_cost(pg::Array, h::Array, param::Dict)
+
+    expandcost = 0
+    hardencost = 0
+    B, T = param[:B], param[:T]
+
+    # This cost function is problem specific
+    for b in 1:B
+        expandcost += (pg[b,1] - param[:Pg0][b])*param[:Cg][b,1]
+        hardencost += (h[b,1] - param[:H0][b])*param[:Ch][b,1]
+        for t in 2:T
+            expandcost += (pg[b,t] - pg[b,t-1])*param[:Cg][b,t]
+            hardencost += (h[b,t] - h[b,t-1])*param[:Ch][b,t]
+        end
+    end
+
+    return expandcost + hardencost
+end
+
+function get_design_cost(design::Any, param::Dict)
 
     if isa(design, designType)
         pg = design.pg
@@ -121,7 +141,7 @@ function null_design(param::Dict)
     return null
 end
 
-function infea_design(source, param::Dict)
+function infea_design(source::Any, param::Dict)
     infea = designType()
     infea.pg = zeros(Int, param[:B], param[:T])
     infea.h = zeros(Int, param[:B], param[:T])
@@ -129,9 +149,18 @@ function infea_design(source, param::Dict)
     infea.cost = Inf
     infea.lb = -Inf
     infea.time = 0.0
-    infea.source = [source]
+    infea.source = collect(source)
     infea.feamap = zeros(Int, param[:S])
     return infea
+end
+
+function collect_design(pool::Vector{designType}, d::designType; id=-1)
+
+    id > 0 ? d.k = id : d.k = d.k
+    show_design(d)
+    push!(pool, d)
+
+    return
 end
 
 

@@ -95,6 +95,7 @@ function post_logical_cons(prob::oneProblem, param::Dict, sto::stocType, selecti
             param[:Ele][i] + param[:ProM][i]*prob.vars[:h][i,t] <= 0)
 
     # McCormick Relaxation => ap = a * pg # Replace this moduleswith methods in relax.jl
+	@show selection
     for i in 1:B
         for t in 1:T
             for s in 1:S
@@ -213,6 +214,7 @@ function post_cnf_vars(prob::oneProblem, param::Dict, selection=[], sbtype="free
     if sbtype == "slackness"
         prob.vars[:flowSlackpos] = @variable(prob.model, flowSlackpos[1:B,1:T,1:S]>=0)
         prob.vars[:flowSlackneg] = @variable(prob.model, flowSlackneg[1:B,1:T,1:S]>=0)
+		prob.vars[:slsSlack] = @variable(prob.model, slsSlack[1:B,1:T,1:S]>=0)
     end
 
     return
@@ -316,7 +318,7 @@ function post_cnf_cons(prob::oneProblem, param::Dict, selection=[], sbtype="free
     post_switching_cons(prob, param, selection)
     post_generation_cons(prob, param, selection)
     post_flowbalance_cons(prob, param, selection, sbtype, post_cnf_logic_cons)
-    post_loadshed_cons(prob, param, selection)
+    post_loadshed_cons(prob, param, selection, sbtype)
 
     return
 end
@@ -337,6 +339,7 @@ function post_dcpf_vars(prob::oneProblem, param::Dict, selection=[], sbtype="fre
             flowEquSlackpos[i=1:B,j=1:B,t=1:T,s=1:S; param[:EDGE][i,j] == 1]>=0)
         prob.vars[:flowEquSlackneg] = @variable(prob.model,
             flowEquSlackneg[i=1:B,j=1:B,t=1:T,s=1:S; param[:EDGE][i,j] == 1]>=0)
+		prob.vars[:slsSlack] = @variable(prob.model, slsSlack[1:B,1:T,1:S]>=0)
     else
         error("")
     end
@@ -521,12 +524,12 @@ function post_loadshed_cons(prob::oneProblem, param::Dict, selection=[], sbtype=
             prob.vars[:pdv][i,t,s] <= param[:aslDetPd][i,t,selection[s]] * prob.vars[:ass][i,t,s])
 
     elseif sbtype == "slackness"
-        prob.vars[:slsSlack] = @variable(prob.model, slsslack[1:T,1:S]>=0)
         @constraint(prob.model, shed[t=1:T, s=1:S],
             sum(prob.vars[:pdv][i,t,s] for i=1:B) + prob.vars[:slsSlack][t,s] >=
             param[:SHEDLambda] * sum(param[:aslDetPd][i,t,selection[s]] for i=1:B))
         @constraint(prob.model, dispLb[i=1:B, t=1:T, s=1:S],
             prob.vars[:pdv][i,t,s] <= param[:aslDetPd][i,t,selection[s]] * prob.vars[:ass][i,t,s])
+		@show shed
 
     else sbtype == "tight"
         @constraint(prob.model, [i=1:B, t=1:T, s=1:S],

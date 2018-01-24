@@ -157,7 +157,7 @@ function improver_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 				allSubprobs[ss] = attach_scenario(allSubprobs[ss], stoc, [ss], exargs[:MODEL], 0.0, exargs, subprobType="tight")
 			end
 			for i in 1:length(spinningPairDesigns)
-				singleCheckTime = @elapsed spinningPairDesigns[i] = isolate_check_one_design_feasibility(power, param, stoc, exargs, spinningPairDesigns[i], stoc.S, builtModel = allSubprobs)
+				singleCheckTime = @elapsed spinningPairDesigns[i] = fea_check_block(power, param, stoc, exargs, spinningPairDesigns[i], stoc.S, builtModel = allSubprobs)
 				d = spinningPairDesigns[i]
 				info("($(myid()))[Spinning-S] $(d.source) cost = <$(round.(d.cost,2))(Cover $(round.(d.coverage,2)))(Time $(round.(d.time,2))s\%)> [LB >> $(round.(d.lb,2))];")
 				feaCheckTime += singleCheckTime
@@ -165,7 +165,7 @@ function improver_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 		else
 			error("Should always have problem built.")
 			for i in 1:length(spinningPairDesigns)
-				singleCheckTime = @elapsed spinningPairDesigns[i] = isolate_check_one_design_feasibility(power,param, stoc,exargs,spinningPairDesigns[i], stoc.S)
+				singleCheckTime = @elapsed spinningPairDesigns[i] = fea_check_block(power,param, stoc,exargs,spinningPairDesigns[i], stoc.S)
 				feaCheckTime += singleCheckTime
 			end
 		end
@@ -201,12 +201,12 @@ function improver_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 		if config.WARMSTART
 			# allSubprobs already created
 			for i in 1:length(blendPairDesigns)
-				singleCheckTime = @elapsed blendPairDesigns[i] = isolate_check_one_design_feasibility(power, param, stoc, exargs, blendPairDesigns[i], stoc.S, builtModel = allSubprobs)
+				singleCheckTime = @elapsed blendPairDesigns[i] = fea_check_block(power, param, stoc, exargs, blendPairDesigns[i], stoc.S, builtModel = allSubprobs)
 				feaCheckTime += singleCheckTime
 			end
 		# else
 		# 	for i in 1:length(blendPairDesigns)
-		# 		singleCheckTime = @elapsed blendPairDesigns[i] = isolate_check_one_design_feasibility(power,param, stoc,exargs,blendPairDesigns[i], stoc.S)
+		# 		singleCheckTime = @elapsed blendPairDesigns[i] = fea_check_block(power,param, stoc,exargs,blendPairDesigns[i], stoc.S)
 		# 		feaCheckTime += singleCheckTime
 		# 	end
 		end
@@ -414,14 +414,14 @@ function partial_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 				allSubprobs[ss] = attach_scenario(allSubprobs[ss], stoc, [ss], exargs[:MODEL], 0.0, exargs, subprobType="tight")
 			end
 			for i in 1:length(partialPairDesigns)
-				singleCheckTime = @elapsed partialPairDesigns[i] = isolate_check_one_design_feasibility(power, param, stoc, exargs, partialPairDesigns[i], stoc.S, builtModel = allSubprobs)
+				singleCheckTime = @elapsed partialPairDesigns[i] = fea_check_block(power, param, stoc, exargs, partialPairDesigns[i], stoc.S, builtModel = allSubprobs)
 				d = partialPairDesigns[i]
 				info("($(myid()))[Spinning-S] $(d.source) cost = <$(round.(d.cost,2))(Cover $(round.(d.coverage,2)))(Time $(round.(d.time,2))s\%)> [LB >> $(round.(d.lb,2))];")
 				feaCheckTime += singleCheckTime
 			end
 		else
 			for i in 1:length(partialPairDesigns)
-				singleCheckTime = @elapsed partialPairDesigns[i] = isolate_check_one_design_feasibility(power,param, stoc,exargs,partialPairDesigns[i], stoc.S)
+				singleCheckTime = @elapsed partialPairDesigns[i] = fea_check_block(power,param, stoc,exargs,partialPairDesigns[i], stoc.S)
 				feaCheckTime += singleCheckTime
 			end
 		end

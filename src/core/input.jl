@@ -20,12 +20,12 @@ function adcc(;kwargs...)
     #     totalTime = @elapsed problem, solution = sbd_heuristic(power, param, stoc, driver, sbd_master_formulation, build_sp)
 	# 	println("Wall time [$totalTime]s")
     #
-    # elseif driver[:ALGO] == "sbd_norisk" || driver[:ALGO] == "sbdnr"
-    #     info(string("Running algorithm : Sample-based Heuristic Decomposition SBD-NORISK. "))
-    #     totalTime = @elapsed problem, solution = sbd_norisk(power, param, stoc, driver, build_sp)
-	# 	println("Wall time [$totalTime]s")
-    #
-	
+
+	elseif driver[:ALGO] == "sbdnr" || driver[:ALGO] == "sbdnr"
+        info(string("Running algorithm : Sample-based Heuristic Decomposition SBD-NORISK. "))
+        totalTime = @elapsed problem, solution = sbd_norisk(power, param, stoc, driver)
+		println("Wall time [$totalTime]s")
+
 	elseif driver[:ALGO] == "heuristic" || driver[:ALGO] == "heu"
 		info(string("Running algorithm : Heuristic method ($(driver[:HEURISTIC])). "))
 		totalTime = @elapsed solution = eval(parse(driver[:HEURISTIC]))(power, param, stoc, driver)

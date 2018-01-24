@@ -27,7 +27,7 @@ function sbd_heuristic(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 
 	# ====================================== PHASE 1 ====================================== #
 	info("[SBD] Isolating scenarios for basic stage...")
-	isoTime, stoc, isoUnionCost, isoCost, earlyExit = isolate_stage(power, param, stoc, exargs, subprob_formulation)
+	isolate_stage(power, param, stoc, exargs, subprob_formulation)
 	if earlyExit == true
 		return 0 # Here need to return something else
 	end

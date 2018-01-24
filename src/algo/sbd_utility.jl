@@ -532,3 +532,15 @@ function sbd_solve_master(power::Dict, param::Dict, stoc::stocType, exargs::Dict
 
 	return masterDesign, pickScenarioPool, neglectedScenarioPool, masterSolution
 end
+
+
+
+# ================================================================= #
+function search_column(pool::Vector{designType}, tar::Any)
+	P = length(pool)
+	for i in 1:P
+		if pool[i].source == target
+			return pool[i]
+		end
+	end
+end
