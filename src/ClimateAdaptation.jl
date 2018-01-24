@@ -36,7 +36,7 @@ include("$(pkgdir)/src/algo/deterministic.jl")
 # include("$(pkgdir)/src/algo/sbd_heu.jl")
 # include("$(pkgdir)/src/algo/evaluation.jl")
 # include("$(pkgdir)/src/algo/report.jl")
-# include("$(pkgdir)/src/algo/heuristic.jl")
+include("$(pkgdir)/src/algo/heuristic.jl")
 include("$(pkgdir)/src/algo/enumerate.jl")
 
 export adcc

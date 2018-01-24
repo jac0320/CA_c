@@ -62,7 +62,7 @@ function sbd_norisk(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 				else
 					info("[SBD-NORISK: EXIT] ??? Post optimization initiated on scenario set $(masterPool)")
 					masterProb = subprob_formulation(power, param, stoc, masterPool, exargs)
-					warmstart_heuristic(masterProb, power, param, stoc, exargs, selection=masterPool)
+					warmstart_heuristic(masterProb, stoc, exargs, selection=masterPool)
 					config_solver(license=config.ENVS, masterProb.model, timelimit=config.TIMELIMITII, mipgap=config.OPTGAP, showlog=1, focus="optimality", threads=16)
 					status = solve(masterProb.model)
 					masterTime = getsolvetime(masterProb.model)
@@ -83,7 +83,7 @@ function sbd_norisk(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 
 		info("[SBD-NORISK] iteration $(iter) current master scenario pool $masterPool")
 		masterProb = subprob_formulation(power, param, stoc, masterPool, exargs, subprobType="tight")
-		warmstart_heuristic(masterProb, power, param, stoc, exargs, selection=masterPool)
+		warmstart_heuristic(masterProb, param, stoc, exargs, selection=masterPool)
 		config_solver(license=config.ENVS, masterProb.model, license=config.ENVS, timelimit=config.TIMELIMITII, mipgap=config.OPTGAP, focus="optimality", showlog=config.SHOWLOG, threads=16)
 		status = solve(masterProb.model)
 		masterTime = getsolvetime(masterProb.model)

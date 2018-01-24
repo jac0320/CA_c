@@ -483,6 +483,8 @@ function post_risk_cons(prob::oneProblem, param::Dict, driver::Dict, selection=[
     S, B, T, L = length(selection), param[:B], param[:T], param[:L]
     overrideEps > 0.0 ? eps = overrideEps : eps = driver[:eps]
 
+	@assert length(prob.vars[:fs]) == S
+
     @constraint(prob.model, [s=1:S],
         T * prob.vars[:fs][s] <= sum(prob.vars[:f][t,s] for t=1:T))
     @constraint(prob.model, risk,
@@ -543,4 +545,60 @@ function mccormick(m,xy,x,y,xˡ,xᵘ,yˡ,yᵘ)
     @constraint(m, xy <= xˡ*y + yᵘ*x - xˡ*yᵘ)
     @constraint(m, xy <= xᵘ*y + yˡ*x - xᵘ*yˡ)
     return m
+end
+
+# Functions used in master formulation
+
+function post_risk_cons(prob::oneProblem, S::Int, driver::Dict, varkey::Symbol=:fs; overrideEps=-1.0)
+
+	overrideEps > 0.0 ? eps = overrideEps : eps = driver[:eps]
+	@assert length(prob.vars[varkey]) == S
+
+	@constraint(prob.model, risk, sum(prob.vars[varkey]) >= ceil(S*(1 - eps)))
+
+	return
+end
+
+function post_master_logical_vars(prob::oneProblem, param::Dict, pool::Vector{designType})
+
+	P, S = length(pool), param[:S]
+	prob.vars[:Y] = @variable(prob.model, Y[1:P], Bin)
+	prob.vars[:ACT] = @variable(prob.model, ACT[1:S], Bin)
+
+	return
+end
+
+
+function post_union_operator(prob::oneProblem, param::Dict, pool::Vector{designType})
+
+	P, B, T = length(pool), param[:B], param[:T]
+	@constraint(prob.model, [i=1:B,t=1:T,k=1:P; pool[k].active == true],
+		prob.vars[:pg][i,t] >= prob.vars[:Y][k] * pool[k].pg[i,t])
+	@constraint(prob.model, [i=1:B,t=1:T,k=1:P; pool[k].active == true],
+		prob.vars[:h][i,t] >= prob.vars[:Y][k] * pool[k].h[i,t])
+
+	return
+end
+
+function post_column_onoff(prob::oneProblem, pool::Vector{designType})
+
+	P = length(pool)
+	@constraint(prob.model, avoid, sum(prob.vars[:Y][k] for k=1:P if pool[k].active == false) == 0)
+
+	return
+end
+
+function post_scenario_activation(prob::oneProblem, param::Dict, pool::Vector{designType})
+
+	P, S = length(pool), param[:S]
+	@constraint(prob.model, [s=1:S, k=1:P; pool[k].active == true], prob.vars[:ACT][s] >= prob.vars[:Y][k] * pool[k].feamap[s])
+	@constraint(prob.model, [s=1:S], prob.vars[:ACT][s] <= sum(prob.vars[:Y][k] * pool[k].feamap[s] for k=1:P))
+
+	return
+end
+
+function post_master_cuts(prob::oneProblem, pool::Vector{designType}, incumb::Float64)
+	P = length(pool)
+	@constraint(prob.model, cuts[k=1:P; pool[k].lb > incumb], sum(prob.vars[:ACT][s] for s in pool[k].source) <= length(pool[k].source)-1)
+	return
 end

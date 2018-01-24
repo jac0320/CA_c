@@ -112,3 +112,118 @@ function get_cache_code(algo::AbstractString, stage::AbstractString, driver::Dic
 	return cacheCode
 
 end
+
+function slr_shutdown(param::Dict, scenario::scenarioType)
+
+	B, T = param[:B], param[:T]
+
+	cP = ones(B, T)
+	for b in 1:B
+		for t in 1:T
+			scenario.data["SL"][t] >= param[:Ele][b] ? cP[b,t] = 0 : cP[b,t] = 1
+		end
+	end
+
+	return cP
+end
+
+function static_expansion(param::Dict, driver::Dict; hl=nothing)
+
+	T, B = param[:T], param[:B]
+
+	zeroStoc = null_scenario_stoc(B, T)
+	eP = build_sp(param, zeroStoc, driver, selection=[1], sbtype="tight")
+
+	if hl != nothing
+		for i=1:B
+			param[:Ele][i] < hl && @constraint(eP.model, [t=1:T], eP.vars[:pg][i,t] <= param[:Pg0][i])
+		end
+	end
+
+	config_solver(eP.model, driver, mipgap=0.0001)
+	status = solve(eP.model, suppress_warnings=true)
+
+	status == :Infeasible && print_iis_gurobi(eP.model, driver)
+
+	return getvalue(eP.vars[:pg])
+
+end
+
+function threshold_harden(param::Dict, scen::scenarioType, threshold::Float64, lag::Bool, closeP::Any)
+
+	B, T = param[:B], param[:T]
+
+	hP = zeros(B, T)
+
+	if lag
+		for t in 2:T, b in 1:B
+			hP[b,t] = hP[b,t-1]
+			if closeP[b,t] == 1 && scen.data["SS"][b,t-1] > param[:Ele][b]
+				hP[b,t] = max(hP[b,t-1], ceil((scen.data["SS"][b,t-1] - param[:Ele][b])/param[:ProM][b]))
+			end
+		end
+		for b in 1:B
+			hP[b, 1] = floor(hP[b, 2]/2)
+		end
+	else
+		for t in 1:T, b in 1:B
+			if t >= 2
+				hP[b,t] = hP[b,t-1]
+			end
+			if closeP[b,t] == 1 && scen.data["SS"][b,t] >= param[:Ele][b]
+				if t > 1
+					hP[b,t] = max(hP[b,t-1], ceil((threshold - param[:Ele][b])/param[:ProM][b]))
+				else
+					hP[b,t] = ceil((threshold - param[:Ele][b])/param[:ProM][b])
+				end
+			end
+		end
+	end
+
+	return hP
+end
+
+function enforce_bound(prob::oneProblem, varkey::Symbol;lb::Vector=[], ub::Vector=[])
+
+	if !isempty(lb)
+		@assert size(prob.vars[varkey]) == size(lb)
+		for (i,k) in enumerate(prob.vars[varkey])
+			setlowerbound(k, lb[i])
+		end
+	end
+
+	if !isempty(ub)
+		@assert size(prob.vars[varkey]) == size(ub)
+		for (i,k) in prob.vars[varkey]
+			setupperbound(k, ub[i])
+		end
+	end
+
+	return
+end
+
+function enforce_startval(prob::oneProblem, varkey::Symbol; sval::Vector=[])
+
+	isempty(sval) && return
+
+	@assert size(sval) == size(prob.vars[varkey])
+
+	for (i,k) in prob.vars[varkey]
+		setvalue(k, sval[i])
+	end
+
+	return
+end
+
+function enforce_startval(prob::oneProblem; sval::Vector=[])
+	isempty(sval) && return
+
+	@assert length(sval) == length(prob.model.colVal)
+
+	C = length(prob.model.colVal)
+	for i in 1:C
+		setvalue(Variable(prob.model, i), sval[i])
+	end
+
+	return
+end

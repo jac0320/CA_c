@@ -25,10 +25,11 @@ function adcc(;kwargs...)
     #     totalTime = @elapsed problem, solution = sbd_norisk(power, param, stoc, driver, build_sp)
 	# 	println("Wall time [$totalTime]s")
     #
-	# elseif driver[:ALGO] == "heuristic" || driver[:ALGO] == "heu"
-	# 	info(string("Running algorithm : Heuristic method ($(driver[:HEURISTIC])). "))
-	# 	totalTime = @elapsed problem, solution = eval(parse(driver[:HEURISTIC]))(power, param, stoc, driver)
-	# 	println("Wall time [$totalTime]s")
+	
+	elseif driver[:ALGO] == "heuristic" || driver[:ALGO] == "heu"
+		info(string("Running algorithm : Heuristic method ($(driver[:HEURISTIC])). "))
+		totalTime = @elapsed solution = eval(parse(driver[:HEURISTIC]))(power, param, stoc, driver)
+		println("Wall time [$totalTime]s")
     #
 	# elseif driver[:ALGO] == "damage_report"
 	# 	info(string("Running reports : Reporting Stochastic Scenario Damages."))

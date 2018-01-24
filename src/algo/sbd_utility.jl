@@ -375,7 +375,7 @@ function sbd_ubPool_solve(power::Dict, param::Dict, stoc::stocType, exargs::Dict
 	# Generate DSP problem formulation
 	if !config.USESBDNORISK
 		ubPoolProb = dsp_formulation(power, param, stoc, ubPool, exargs)
-		warmstart_heuristic(ubPoolProb, power, param, stoc, exargs, selection=ubPool)
+		warmstart_heuristic(ubPoolProb, param, stoc, exargs, selection=ubPool)
 		info("[SBD] UB Pool todo-> $ubPool")
 		config_solver(license=config.ENVS,
 						ubPoolProb.model,

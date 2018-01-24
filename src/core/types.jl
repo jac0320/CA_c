@@ -27,6 +27,7 @@ type designType
 	lb			::Float64		# Lower bound from thee optimization
 	time		::Float64		# Time took to get this design
     active      ::Bool			# Indicator wether this design is active or not
+	designType(k, pg, h) = new(k, pg, h, [], Inf, 0.0, [], 0.0, 0.0, false)
 	designType() = new()
 end
 

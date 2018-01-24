@@ -1,4 +1,6 @@
-function build_sp(param::Dict, stoc::stocType, selection, driver::Dict; sbtype="free")
+function build_sp(param::Dict, stoc::stocType, driver::Dict; selection::Any=[], sbtype="free")
+
+	isempty(selection) ? selection = [1:param[:S];] : selection = selection
 
 	sp = sp_formulation(param)
 	attach_scenario(sp, param, stoc, selection, driver[:MODEL], driver, sbtype=sbtype)
@@ -130,87 +132,29 @@ function check_slackness(power::Dict, param::Dict, stoc::stocType, soln, driver:
 	return maxSlackIdx, maxSlack, infeaDict, feaDict
 end
 
-function sbd_master_formulation(power::Dict, param::Dict, stoc::stocType, driver::Dict, overrideEps=driver[:eps], cuts=[], prevSolution=[]; kwargs...)
+function sbd_master_formulation(power::Dict, param::Dict, stoc::stocType, driver::Dict, overrideEps=driver[:eps], cuts=[], prevSol=[]; incumbent=Inf)
 
-	options = Dict(kwargs)
 	master = oneProblem()
-	m = init_model_solver()	# setup empty model and associated solver
 
-	# Attach the parameters
-	master.param = param
+	post_adaptation_vars(master, param)
+	post_master_logical_vars(master, param, stoc.sbdColumns)
+	post_incremental_cons(master, param)
 
-	# Stoc always remains to be the full set
-	S = stoc.S
-	T = master.param[:T] = stoc.T
-	B = master.param[:B]
-	L = master.param[:L]
+	post_union_operator(master, param, stoc.sbdColumns)
+	post_column_onoff(master, stoc.sbdColumns)
+	post_scenario_activation(master, param, stoc.sbdColumns)
+	post_risk_con(master, param[:S], driver, :ACT)
+	post_master_cuts(master, stoc.sbdColumns, incumbent)
 
-	master.name = power["name"]
-	master.stage = 1
-	master.T = stoc.T
-	master.vars = Dict()
-
-	# Master problem capture the scenarios that is assinged to it
-	master.S = master.param[:S] = stoc.S
-
-	# Capture the biggest solution pool
-	poolLength = length(stoc.sbdColumns)
-
-	master.vars[:pg] = @variable(m, 0<=pg[i=1:B, 1:T]<=param[:Pgbar][i], Int)
-	master.vars[:h] = @variable(m, 0<=h[i=1:B, 1:T]<=param[:Hbar][i], Int)
-	master.vars[:Y] = @variable(m, Y[k=1:poolLength], Bin)	# Design selector
-	master.vars[:ACT] = @variable(m, ACT[1:S], Bin) 		# Indicates if a scenarios has been activated for feasible or not
-
-	if isa(prevSolution, solnType)
-		info("[SBD] Warm starting master problem with known solutions...")
-		for i in 1:B
-			for j in 1:T
-				setvalue(master.vars[:pg][i,j], prevSolution.primal[:pg][i,j])
-				setvalue(master.vars[:h][i,j], prevSolution.primal[:h][i,j])
-			end
-		end
-		for i in 1:length(master.vars[:Y])
-			if i <= length(prevSolution.primal[:Y])
-				setvalue(master.vars[:Y][i], prevSolution.primal[:Y][i])
-			else
-				setvalue(master.vars[:Y][i], 0.0)
-			end
-		end
-		for i in 1:length(master.vars[:ACT])
-			setvalue(master.vars[:ACT][i], prevSolution.primal[:ACT][i])
-		end
+	if isa(prevSol, solnType)
+		prevYval = [prevSol.primal[:Y],zeros(P-length(prevSol.primal[:Y]));]
+		enforce_startval(master, :pg, sval=prevSol.primal[:pg])
+		enforce_startval(master, :h, sval=prevSol.primal[:h])
+		enforce_startval(master, :Y, sval=prevYval)
+		enforce_startval(master, :ACT, sval=prevSol.primal[:ACT])
 	end
 
-	@constraint(m, [i=1:B], pg[i,1] >= param[:Pg0][i])
-	@constraint(m, [i=1:B], h[i,1] >= param[:H0][i])
-	@constraint(m, [i=1:B,t=2:T], pg[i,t-1] <= pg[i,t])
-	@constraint(m, [i=1:B,t=2:T], h[i,t-1] <= h[i,t])
-
-	@constraint(m, [i=1:B,t=1:T,k=1:poolLength; stoc.sbdColumns[k].active == true],
-		pg[i,t]>=Y[k]*stoc.sbdColumns[k].pg[i,t])
-	@constraint(m, [i=1:B,t=1:T,k=1:poolLength; stoc.sbdColumns[k].active == true],
-		h[i,t]>=Y[k]*stoc.sbdColumns[k].h[i,t])
-
-	@constraint(m, avoid, sum(Y[k] for k=1:poolLength if stoc.sbdColumns[k].active == false) == 0)
-
-	@constraint(m, [s=1:S, k=1:poolLength; stoc.sbdColumns[k].active == true],
-		ACT[s] >= Y[k]*stoc.sbdColumns[k].feamap[s])
-	@constraint(m, [s=1:S],
-		ACT[s] <= sum(Y[k]*stoc.sbdColumns[k].feamap[s] for k=1:poolLength))
-
-	@constraint(m, risk,
-		sum(ACT[s] for s=1:S) >= master.S * (1-overrideEps))
-
-	if haskey(options, :incumbent)
-		info("[ISO] Adding valid inequalities to the master problem")
-		@constraint(m, cuts_expr[k=1:poolLength; stoc.sbdColumns[k].lb > options[:incumbent]],
-			sum(ACT[s] for s in stoc.sbdColumns[k].source) <= length(stoc.sbdColumns[k].source)-1)
-	end
-
-	@objective(m, Min,
-		sum(param[:Cg][i,1]*(pg[i,1]-param[:Pg0][i]) for i=1:B) + sum(param[:Ch][i,1]*(h[i,1]-param[:H0][i]) for i=1:B) + sum(param[:Cg][i,t]*(pg[i,t]-pg[i,t-1]) for i=1:B,t=2:T) + sum(param[:Ch][i,t]*(h[i,t]-h[i,t-1]) for i=1:B,t=2:T));
-
-	master.model = m;
+	post_adaptation_obj(master, param)
 
 	return master
 end

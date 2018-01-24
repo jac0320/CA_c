@@ -167,7 +167,7 @@ end
 function null_scenario_stoc(B::Int, T::Int)
 
     s = stocType(1, T, B)
-    s.scenarios[1] = scenarioType(1, Dict("SL"=>zeros(Float64,stoc.T),"SS"=>zeros(Float64,stoc.B,stoc.T)), 1.0)
+    s.scenarios[1] = scenarioType(1, Dict("SL"=>zeros(Float64, T),"SS"=>zeros(Float64,B,T)), 1.0)
 
     return s
 end

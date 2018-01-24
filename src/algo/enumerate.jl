@@ -19,7 +19,7 @@ end
 """
 function enu_solve_subset(param::Dict, stoc::stocType, driver::Dict, subset)
 
-	sp = build_sp(param, stoc, subset, driver)
+	sp = build_sp(param, stoc, driver, selection)
 	config_solver(sp.model, driver, timelimit=driver[:TIMELIMITIII])
 	status = solve(sp.model)
 
