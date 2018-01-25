@@ -42,14 +42,14 @@ function get_design(model::JuMP.Model)
     return design
 end
 
-function get_design(prob::oneProblem; idx=0, lb=-Inf, time=0.0)
+function get_design(prob::oneProblem)
 
     valPg = convert(Array{Int}, round.(getvalue(prob.vars[:pg])))
     valH = convert(Array{Int}, round.(getvalue(prob.vars[:h])))
 
     d = designType(idx, sparse(valPg), sparse(valH), getobjectivevalue(prob.model))
-    d.lb = lb
-    d.time = time
+    d.lb = prob.model.objBound
+    d.time = getsolvetime(prob.model)
 
     return d
 end
@@ -180,6 +180,9 @@ function print_design(design, param::Dict)
     else
         errro("ERROR|soln.jl|print_design()|unkown solution type.")
     end
+
+    totalcost, expandcost, hardencost = get_design_cost(design, param)
+    info("[COST] $totalcost = $expandcost + $hardencost")
 
     B, T = size(pg)
     buildBus = Set()

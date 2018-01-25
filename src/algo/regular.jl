@@ -1,4 +1,33 @@
-function enumerator(power::Dict, param::Dict, stoc::stocType, driver::Dict)
+function deterministic(param::Dict, stoc::stocType, driver::Dict)
+
+	climate = basic_problem(param, stoc, driver[:MODEL], driver)
+	config_solver(climate.model, driver, focus="optimality", threads=16, showlog=driver[:SHOWLOG])
+
+	status = solve(climate.model)
+	if status == :Infeasible
+		print_iis_gurobi(climate.model) # Infeasible diagnostic
+		warn("Model Infeasible.")
+		quit()
+	end
+
+	design = get_design(climate)
+	print_design(design, param)
+	write_output_files(solution, driver)
+
+	return solution
+end
+
+# This function is the path towards a sketch room where user have the a lot of flexibility
+function basic_problem(prob::Dict, param::Dict, stoc::stocType, complete_formulation, driver::Dict, selection=[])
+
+	isempty(selection) ? selection = [1:param[:S];] : selection = selection
+	p = base_formulation(prob, param, stoc, driver)
+	complete_formulation(p, param, driver)
+
+	return p
+end
+
+function enumerator(param::Dict, stoc::stocType, driver::Dict)
 
 	pool = [1:param[:S];]
 

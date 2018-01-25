@@ -5,7 +5,7 @@
 		applied for different characteristics.
 	Output : metric::Float64
 """
-function eval_formulation(power::Dict, param::Dict, stoc::stocType, scenario, soln, exargs::Dict, objTarget, builtModel=nothing)
+function eval_formulation(power::Dict, param::Dict, stoc::stocType, scenario, soln, exargs::Dict, objTarget, builtmodel=nothing)
 
 	T = exargs[:T]
 	B = exargs[:B]
@@ -23,7 +23,7 @@ function eval_formulation(power::Dict, param::Dict, stoc::stocType, scenario, so
 	end
 
 	# Construct a simple subproblem for testing a scenario's user-specific objective
-	evalProb = sp_formulation(power, param, stoc, soln, nothing, builtModel)
+	evalProb = sp_formulation(power, param, stoc, soln, nothing, builtmodel)
 
 	# ============================= NEW MODIFIED SECTION ================================ #
 	@assert length(scenario) == 1

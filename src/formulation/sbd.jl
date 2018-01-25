@@ -43,14 +43,14 @@ function attach_scenario(prob::oneProblem, param::Dict, sto::stocType, selection
     return prob
 end
 
-function check_feasible(param::Dict, stoc::stocType, soln, driver::Dict; selection=[], builtm=nothing)
+function check_feasible(param::Dict, stoc::stocType, soln, driver::Dict; selection=[], builtmodel=nothing)
 
 	isempty(selection) ? selection = [1:param[:S];] : selection = selection
 	feamap = zeros(Int, param[:S])
 	for s in selection
-		if builtm != nothing
-			fix_xbar(builtm[s], param, soln)
-			subprob = builtm[s]
+		if builtmodel != nothing
+			fix_xbar(builtmodel[s], param, soln)
+			subprob = builtmodel[s]
 		else
 			subprob = sp_formulation(param, soln)
 			attach_scenario(subprob, param, stoc, [s], driver[:MODEL], driver, sbtype="tight")
@@ -64,7 +64,7 @@ function check_feasible(param::Dict, stoc::stocType, soln, driver::Dict; selecti
 	return feamap
 end
 
-function check_slackness(param::Dict, stoc::stocType, soln, driver::Dict; selection=[], builtm=nothing)
+function check_slackness(param::Dict, stoc::stocType, soln, driver::Dict; selection=[], builtmodel=nothing)
 
 	infeaDict = []
 	maxSlack = -Inf
@@ -77,9 +77,9 @@ function check_slackness(param::Dict, stoc::stocType, soln, driver::Dict; select
 	# Performing feasibility check on all scenarios
 	for s in 1:length(selection)
 		slackInd = pop!(selection)
-		if builtm != nothing
-			fix_xbar(builtm[slackInd], param, soln)
-			slackProb = builtm[slackInd]
+		if builtmodel != nothing
+			fix_xbar(builtmodel[slackInd], param, soln)
+			slackProb = builtmodel[slackInd]
 		else
 			slackProb = sp_formulation(param, soln)
 			attach_scenario(slackProb, param, stoc, [slackInd], driver[:MODEL], driver, sbtype="slackness")
@@ -100,7 +100,7 @@ function check_slackness(param::Dict, stoc::stocType, soln, driver::Dict; select
 	return maxSlackIdx, infeaDict
 end
 
-function sbd_master_formulation(power::Dict, param::Dict, stoc::stocType, driver::Dict, overrideEps=driver[:eps], cuts=[], prevSol=[]; incumbent=Inf)
+function shcg_master_formulation(param::Dict, stoc::stocType, driver::Dict; prevsol=nothing, incumbent=Inf)
 
 	master = oneProblem()
 
@@ -114,7 +114,7 @@ function sbd_master_formulation(power::Dict, param::Dict, stoc::stocType, driver
 	post_risk_con(master, param[:S], driver, :ACT)
 	post_master_cuts(master, stoc.sbdColumns, incumbent)
 
-	if isa(prevSol, solnType)
+	if isa(prevsol, solnType)
 		prevYval = [prevSol.primal[:Y],zeros(P-length(prevSol.primal[:Y]));]
 		enforce_startval(master, :pg, sval=prevSol.primal[:pg])
 		enforce_startval(master, :h, sval=prevSol.primal[:h])

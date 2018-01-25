@@ -9,6 +9,7 @@ module ClimateAdaptation
 
 using JSON
 using JuMP
+using Iterators
 using PowerModels
 using Gurobi, MathProgBase  # Used for infeasible diagnostic
 
@@ -28,16 +29,13 @@ include("$(pkgdir)/src/formulation/general.jl")
 include("$(pkgdir)/src/formulation/sbd.jl")
 include("$(pkgdir)/src/formulation/cuts.jl")
 
-include("$(pkgdir)/src/algo/deterministic.jl")
-# include("$(pkgdir)/src/algo/sbd_risk.jl")
-include("$(pkgdir)/src/algo/sbdnr.jl")
-# include("$(pkgdir)/src/algo/sbd_utility.jl")
-include("$(pkgdir)/src/algo/sbdiso.jl")
-# include("$(pkgdir)/src/algo/sbd_heu.jl")
+include("$(pkgdir)/src/algo/regular.jl")
+include("$(pkgdir)/src/algo/shcg.jl")
+include("$(pkgdir)/src/algo/shcgutility.jl")
+
 # include("$(pkgdir)/src/algo/evaluation.jl")
 # include("$(pkgdir)/src/algo/report.jl")
 include("$(pkgdir)/src/algo/heuristic.jl")
-include("$(pkgdir)/src/algo/enumerate.jl")
 
 export adcc
 

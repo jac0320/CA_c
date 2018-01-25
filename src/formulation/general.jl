@@ -1,4 +1,4 @@
-function base_formulation(prob::Dict, param::Dict, stoc::stocType, exargs::Dict, selection=[]; kwargs...)
+function base_formulation(param::Dict, stoc::stocType, exargs::Dict, selection=[]; kwargs...)
 
 	base = oneProblem()
 	param = check_parameter_intactness(param)

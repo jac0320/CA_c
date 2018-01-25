@@ -1,10 +1,6 @@
-function write_output_files(power::Dict, param::Dict, stoc::stocType, solution, driver::Dict)
+function write_output_files(solution, driver::Dict)
 
-	designFilepath = string(driver[:OUTPUTPATH], "design_", driver[:NAME],".json")
-	paramFilepath = string(driver[:OUTPUTPATH], "param_", driver[:NAME],".json")
-	stocFilepath = string(driver[:OUTPUTPATH], "stoc_",stoc.S,"_",driver[:STOCHMODE],"_",driver[:NAME],".json")
-
-	write_json(power,designFilepath)
+	dFilepath = string(driver[:OUTPUTPATH], "design_", driver[:NAME],".json")
 
 	# Write Design Details
 	designDict = Dict()
@@ -17,7 +13,11 @@ function write_output_files(power::Dict, param::Dict, stoc::stocType, solution, 
 	else
 		error("Unkown solution data structure.")
 	end
-	write_json(designDict, designFilepath)
+
+	# Print to file
+	f = open(dFilepath, "w")
+	JSON.print(f, designDict)
+	close(f)
 
 	return
 end
@@ -51,16 +51,6 @@ function summary_driver_arguments(param::Dict, stoc::stocType, driver::Dict)
 	info("Machine INFO          : ", Sys.MACHINE)
 	info("CPU Summary           : ")
 	Sys.cpu_summary()
-
-	return
-end
-
-function write_json(content::Dict,filename::AbstractString, pathprefix::AbstractString="")
-
-	isempty(pathprefix) ? wf = open(filename, "w") : wf = open(pathprefix,"/",filename,"w")
-
-	write(wf, JSON.json(content))
-	close(wf)
 
 	return
 end

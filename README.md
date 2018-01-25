@@ -26,7 +26,7 @@ The optimization model provides a variety of command line inputs for analyses. H
     * `MODEL` (default=`dc`) dispatch mode
         * `capacity` | `network`
     * `ALGORITHM` (default=`regular`) algorithm used for solving optimization
-        * `sbd_norisk` | `sbd_heuristic`
+        * `shcgnr` | `shcg`
 * Keyword Arguments
     * `--T=1` (int) model total time periods, must comply with parameters and scenario inputs
     * `--EPS=0.0` (float) risk parameter
@@ -42,7 +42,7 @@ The optimization model provides a variety of command line inputs for analyses. H
     * `--ANGLESHIFTLambda=30` (float) degree of voltage angle allowed between two linked buses
     * `--DISCOUNTLambda=-0.01` (float) degragation rate of cost of adptation over time periods
     * `--SOLVER=config` (str) MIP solver selection, can also be `Cplex` or `Gurobi`. `config` means comply with config file, same as all the followings
-    * `--PARALLEL=config` (str) whether or not to run `sbd_heuristic` or `sbd_norisk` in parallel.
+    * `--PARALLEL=config` (str) whether or not to run `shcg` or `shcgnr` in parallel.
     * `--WORKERS=config` (str) how many workers is required for parallel algorithm
     * `--TIMELIMIT=-1` (float) total time limit on running the optimization, `-1` means comply with config file, same as all the followings
     * `--TIMELIMITII=-1` (float) total time for finer control of the SBD algorithm

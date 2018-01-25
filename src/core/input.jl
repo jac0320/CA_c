@@ -10,26 +10,18 @@ function adcc(;kwargs...)
 	summary_driver_arguments(param, stoc, driver)
     summary_scenarios(stoc, param, driver)
 
+	info("ALGORITHM $(driver[:ALGO])")
     if driver[:ALGO] == "solve" || driver[:ALGO] == "regular"
-        info(string("Sending original problem to solver ", driver[:ALGO]))
-        totalTime = @elapsed problem, solution = deterministic(power, param, stoc, driver)
-		println("Wall time [$totalTime]s")
+        solution = deterministic(param, stoc, driver)
 
-    # elseif driver[:ALGO] == "sbd_heuristic" || driver[:ALGO] == "sbd"
-    #     info(string("Running algorihtm with CG heuristic", driver[:ALGO]))
-    #     totalTime = @elapsed problem, solution = sbd_heuristic(power, param, stoc, driver, sbd_master_formulation, build_sp)
-	# 	println("Wall time [$totalTime]s")
-    #
+    elseif driver[:ALGO] == "shcg" || driver[:ALGO] == "sbd"
+        solution = shcg(param, stoc, driver, sbd_master_formulation, build_sp)
 
 	elseif driver[:ALGO] == "sbdnr" || driver[:ALGO] == "sbdnr"
-        info(string("Running algorithm : Sample-based Heuristic Decomposition SBD-NORISK. "))
-        totalTime = @elapsed problem, solution = sbd_norisk(power, param, stoc, driver)
-		println("Wall time [$totalTime]s")
+        solution = shcgnr(param, stoc, driver)
 
 	elseif driver[:ALGO] == "heuristic" || driver[:ALGO] == "heu"
-		info(string("Running algorithm : Heuristic method ($(driver[:HEURISTIC])). "))
-		totalTime = @elapsed solution = eval(parse(driver[:HEURISTIC]))(power, param, stoc, driver)
-		println("Wall time [$totalTime]s")
+		solution = eval(parse(driver[:HEURISTIC]))(param, stoc, driver)
     #
 	# elseif driver[:ALGO] == "damage_report"
 	# 	info(string("Running reports : Reporting Stochastic Scenario Damages."))
@@ -45,7 +37,7 @@ function adcc(;kwargs...)
 
     elseif driver[:ALGO] == "enumerate"
 		info(string("Running enumertae algorithmic to explore the solution space"))
-		enumerator(power, param, stoc, driver)
+		enumerator(param, stoc, driver)
 	else
 		error("Unkown algorithm (:ALGO) mode.")
     end
@@ -69,7 +61,7 @@ function build_driver(args::Dict)
 	haskey(args, :STOCHMODE)	? driver[:STOCHMODE] = args[:STOCHMODE] : driver[:STOCHMODE] = ""
     haskey(args, :ALGO)         ? driver[:ALGO] = args[:ALGO] : driver[:ALGO] = "solve"
     haskey(args, :PARALLEL)     ? driver[:PARALLEL] = args[:PARALLEL] : driver[:PARALLEL] = false
-    haskey(args, :CGHEURISTIC)  ? driver[:CGHEURISTIC] = args[:CGHEURISTIC] : driver[:CGHEURISTIC] = "improver_heu"
+    haskey(args, :CGHEURISTIC)  ? driver[:CGHEURISTIC] = args[:CGHEURISTIC] : driver[:CGHEURISTIC] = "shcg_enu"
     haskey(args, :HEURISTIC)    ? driver[:HEURISTIC] = args[:HEURISTIC] : driver[:HEURISTIC] = "reactor"
     haskey(args, :EVALDESIGN)       ? driver[:EVALDESIGN] = args[:EVALDESIGN] : driver[:EVALDESIGN] = ""
     haskey(args, :EVALTARGET)       ? driver[:EVALTARGET] = args[:EVALTARGET] : driver[:EVALTARGET] = "feasibility"

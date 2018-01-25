@@ -1,4 +1,4 @@
-function reactor(power::Dict, param::Dict, stoc::stocType, driver::Dict)
+function reactor(param::Dict, stoc::stocType, driver::Dict)
 
     pickIdx = rand([1:stoc.S;])
     pickScen = stoc.scenarios[pickIdx]
@@ -11,13 +11,13 @@ function reactor(power::Dict, param::Dict, stoc::stocType, driver::Dict)
     totalcost, expandcost, hardencost = get_design_cost(hDesign, param)
     info("[REACTOR] Cost is $totalcost = $expandcost + $hardencost")
 
-    write_output_files(power, param, stoc, hDesign, driver)
+    write_output_files(hDesign, driver)
     print_design(hDesign, param)
 
     return hDesign
 end
 
-function highland(power::Dict, param::Dict, stoc::stocType, driver::Dict)
+function highland(param::Dict, stoc::stocType, driver::Dict)
 
     pickIdx = rand([1:stoc.S;])
     pickScen = stoc.scenarios[pickIdx]
@@ -31,13 +31,13 @@ function highland(power::Dict, param::Dict, stoc::stocType, driver::Dict)
     totalcost, expandcost, hardencost = get_design_cost(hDesign, param)
     info("[HIGHLAND] The total cost is $totalcost = $expandcost + $hardencost")
 
-    write_output_files(power, param, stoc, hDesign, driver)
+    write_output_files(hDesign, driver)
     print_design(hDesign, param)
 
     return hDesign
 end
 
-function bathtub(power::Dict, param::Dict, stoc::stocType, driver::Dict)
+function bathtub(param::Dict, stoc::stocType, driver::Dict)
 
     pickIdx = rand([1:stoc.S;])
     pickScen = stoc.scenarios[pickIdx]
@@ -51,13 +51,13 @@ function bathtub(power::Dict, param::Dict, stoc::stocType, driver::Dict)
     totalcost, expandcost, hardencost = get_design_cost(hDesign, param)
     info(string("[BATHTUB]The total cost is $totalcost = $expandcost + $hardencost"))
 
-    write_output_files(power, param, stoc, hDesign, driver)
+    write_output_files(hDesign, driver)
     print_design(hDesign, param)
 
     return hDesign
 end
 
-function extreme(power::Dict, param::Dict, stoc::stocType, driver::Dict)
+function extreme(param::Dict, stoc::stocType, driver::Dict)
 
     pickIdx = rand([1:stoc.S;])
     pickScen = stoc.scenarios[pickIdx]
@@ -72,7 +72,7 @@ function extreme(power::Dict, param::Dict, stoc::stocType, driver::Dict)
     totalcost, expandcost, hardencost = get_design_cost(hDesign, param)
     info(string("[EXTREME]The total cost is $totalcost = $expandcost + $hardencost"))
 
-    write_output_files(power, param, stoc, hDesign, driver)
+    write_output_files(hDesign, driver)
     print_design(hDesign, param)
 
     return hDesign
