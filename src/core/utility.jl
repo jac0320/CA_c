@@ -108,17 +108,6 @@ function get_rhs(model::JuMP.Model)
     return rhs
 end
 
-function get_cache_code(algo::AbstractString, stage::AbstractString, driver::Dict)
-
-	cacheCode = "./experiments/cache/"
-
-	cacheCode = string(cacheCode, driver[:PROBLEM], driver[:MODEL], replace(driver[:STOCHFILE],".json",""))
-	cacheCode = string(cacheCode, algo, stage)
-
-	return cacheCode
-
-end
-
 function slr_shutdown(param::Dict, scenario::scenarioType)
 
 	B, T = param[:B], param[:T]
@@ -189,7 +178,7 @@ function threshold_harden(param::Dict, scen::scenarioType, threshold::Float64, l
 	return hP
 end
 
-function enforce_bound(prob::oneProblem, varkey::Symbol;lb::Vector=[], ub::Vector=[])
+function enforce_bound(prob::oneProblem, varkey::Symbol; lb::Array=[], ub::Array=[])
 
 	if !isempty(lb)
 		@assert size(prob.vars[varkey]) == size(lb)

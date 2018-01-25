@@ -85,22 +85,23 @@ function warmstart_heuristic(prob::oneProblem, param::Dict, stoc::stocType, driv
 
     S, T, B = length(selection), param[:T], param[:B]
 
-    expand = static_expansion(param, driver)
+    expand = convert(Array{Int}, static_expansion(param, driver))
 
-    orig_l_expand = getlowerbound(prob.vars[:pg])
-    orig_u_harden = getupperbound(prob.vars[:h])
-    orig_l_harden = getlowerbound(prob.vars[:h])
+    orig_l_expand = convert(Array{Int}, getlowerbound(prob.vars[:pg]))
+    orig_u_harden = convert(Array{Int}, getupperbound(prob.vars[:h]))
+    orig_l_harden = convert(Array{Int}, getlowerbound(prob.vars[:h]))
 
     enforce_bound(prob, :pg, lb=expand)
-    enforce_bound(prob, :h, lb=orig_u_harden)
+    enforce_bound(prob, :h,  lb=orig_u_harden)
     enforce_bound(prob, :fs, lb=ones(Int, S))
 
+    config_solver(prob.model, driver)
     status = solve(prob.model)
     status == :Infeasible && print_iis_gurobi(prob.model)
     status == :Infeasible && error("warm start failed")
 
-    enforce_bound(prob, :h, lb=orig_l_expand)
     enforce_bound(prob, :pg, lb=orig_u_harden)
+    enforce_bound(prob, :h,  lb=orig_l_expand)
     enforce_bound(prob, :fs, lb=zeros(Int, S))
 
     return

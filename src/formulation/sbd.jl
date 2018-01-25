@@ -66,12 +66,9 @@ end
 
 function check_slackness(param::Dict, stoc::stocType, soln, driver::Dict; selection=[], builtm=nothing)
 
-	feaCnt = 0
-	feaDict = Dict()
-	infeaDict = Dict()
+	infeaDict = []
 	maxSlack = -Inf
 	maxSlackIdx = 0
-	coverage = 0.0
 
 	isempty(selection) ? selection = [1:param[:S];] : selection = selection
 
@@ -89,20 +86,18 @@ function check_slackness(param::Dict, stoc::stocType, soln, driver::Dict; select
 		end
 		# reason_logical_vars(slackProb, param, stoc, s)
 		config_solver(slackProb.model, driver, timelimit=180, focus="optimality", threads=1)
-		print(slackProb.model)
-		error("STOP")
 		status = solve(slackProb.model, suppress_warnings=true)
 		status == :Infeasible && print_iis_gurobi(slackProb.model, driver)
 		status == :Infeasible && error("Slackness problem should always be feasible...")
 		push!(slackPool, getobjectivevalue(slackProb.model))
-		abs(slackPool[end]) > 0.001 ? infeaDict[slackInd] = slackPool[end] : feaDict[slackInd] = slackPool[end]
+		abs(slackPool[end]) > 0.001 && push!(infeaDict, slackInd)
 		if slackPool[end] > maxSlack
 			maxSlack = slackPool[end]
 			maxSlackIdx = slackInd
 		end
 	end
 
-	return maxSlackIdx, infeaDict, feaDict
+	return maxSlackIdx, infeaDict
 end
 
 function sbd_master_formulation(power::Dict, param::Dict, stoc::stocType, driver::Dict, overrideEps=driver[:eps], cuts=[], prevSol=[]; incumbent=Inf)

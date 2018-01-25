@@ -21,16 +21,18 @@ function sbd_norisk(power::Dict, param::Dict, stoc::stocType, driver::Dict; sele
 	incumbCol = stoc.sbdColumns[nextidx]
 	push!(scenpool, nextidx)
 
+	info("[SBD-NR] Init -- $(scenpool)")
 	infeas = [s for s in selection if incumbCol.feamap[s] == 0]
 
 	while true
 		iter += 1
 		st = time()
-		nextidx, infeas, feas = check_slackness(param, stoc, incumbCol, driver, selection=infeas, builtm=builtmodel)
-		info("[SBD-NR] SLACKNESS $(time()-st) || A-T $(time()-ast)")
 
-		cover = length(feas)/S*100
-		info("[SBD-NR] incumbent cover rate $(length(feas)) [$(round.(cover,3))%]")
+		nextidx, infeas = check_slackness(param, stoc, incumbCol, driver, selection=infeas, builtm=builtmodel)
+		info("[SBD-NR] CHECK SLACKNESS $(time()-st) || A-T $(time()-ast)")
+
+		cover = (S - length(infeas))/S*100
+		info("[SBD-NR] FEACNT $(S-length(infeas)) || COVERAGE $(round.(cover,3))%")
 
 		if isempty(infeas) || iter > driver[:MAXITER]
 			info("[SBD-NR: EXIT] Termination condition reached...")
@@ -39,10 +41,9 @@ function sbd_norisk(power::Dict, param::Dict, stoc::stocType, driver::Dict; sele
 					solution = get_primal_solution(masterprob)
 					write_output_files(power, param, stoc, solution, driver)
 				else
-					@show scenpool
-					info("[SBD-NR: EXIT] Post optimization initiated on scenario set $(scenpool)")
+					info("[SBD-NR: EXIT] POST OPT $(scenpool)")
 					postprob = build_sp(param, stoc, driver, selection=scenpool, sbtype="tight")
-					warmstart_heuristic(postprob, stoc, driver, selection=scenpool)
+					# warmstart_heuristic(postprob, stoc, driver, selection=scenpool)
 					config_solver(postprob, driver, timelimit=driver[:TIMELIMITII],focus="optimality")
 					status = solve(masterprob.model)
 					masterTime = getsolvetime(masterprob.model)
@@ -51,7 +52,7 @@ function sbd_norisk(power::Dict, param::Dict, stoc::stocType, driver::Dict; sele
 				end
 			end
 			totalcost, expandcost, hardencost = get_design_cost(incumbCol, param)
-			info("[SBD-NR:EXIT] The total cost is $totalcost = $expandcost + $hardencost")
+			info("[SBD-NR:EXIT] POST OPT COST $totalcost = $expandcost + $hardencost")
 			print_design(incumbCol, param)
 			write_output_files(power,param,stoc,solution,driver)
 			return masterprob, incumbCol
@@ -59,20 +60,19 @@ function sbd_norisk(power::Dict, param::Dict, stoc::stocType, driver::Dict; sele
 
 		push!(scenpool, nextidx)	# For next master problem
 
-		info("[SBD-NR] master pool $scenpool")
+		info("[SBD-NR] MASETER POOL $scenpool")
 		st = time()
 		masterprob = build_sp(param, stoc, driver, selection=scenpool, sbtype="tight")
-		warmstart_heuristic(masterprob, param, stoc, driver, selection=scenpool)
-		config_solver(masterprob, driver, timelimit=driver[:TIMELIMITII], focus="optimality")
+		# warmstart_heuristic(masterprob, param, stoc, driver, selection=scenpool)
+		config_solver(masterprob.model, driver, timelimit=driver[:TIMELIMITII], focus="optimality")
 		status = solve(masterprob.model)
-
 		if status == :Infasible  # Assumption for climate problem
-			print_iis_gurobi(masterprob.model)
+			print_iis_gurobi(masterprob.model, driver)
 			error("[SBD-NR] Master infeasible")
 		end
 
 		mBound = masterprob.model.objBound
-		mObj = master.model.objVal
+		mObj = masterprob.model.objVal
 		mTime = time()-st
 		incumbCol = get_design(masterprob, idx=iter, lb=mBound, time=mTime)
 		info("[SBD-NR] ITER $(iter) || UB $(mObj) || LB $(mBound)")

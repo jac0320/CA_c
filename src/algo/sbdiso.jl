@@ -52,7 +52,7 @@ end
 function iso_solve_block(param::Dict, stoc::stocType, s::Int, driver::Dict,sbtype="tight")
 
 	p = build_sp(param, stoc, driver, selection=[s], sbtype=sbtype)
-	warmstart_heuristic(p, stoc, driver, selection=[s])
+	# warmstart_heuristic(p, stoc, driver, selection=[s])
 	config_solver(p.model, driver, timelimit=driver[:TIMELIMITIII], focus="optimality", threads=driver[:WORKERTHREADS])
 	status = solve(oneIsoProb.model)
 

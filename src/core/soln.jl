@@ -44,8 +44,9 @@ end
 
 function get_design(prob::oneProblem; idx=0, lb=-Inf, time=0.0)
 
-    valPg = convert(Array{Int}, getvalue(prob.vars[:pg]))
-    valH = convert(Array{Int}, getvalue(prob.vars[:h]))
+    valPg = convert(Array{Int}, round.(getvalue(prob.vars[:pg])))
+    valH = convert(Array{Int}, round.(getvalue(prob.vars[:h])))
+
     d = designType(idx, sparse(valPg), sparse(valH), getobjectivevalue(prob.model))
     d.lb = lb
     d.time = time
@@ -164,7 +165,7 @@ function collect_design(pool::Vector{designType}, d::designType; id=-1)
 end
 
 
-# This subroutine prints out the design in a user-friendly way
+
 function print_design(design, param::Dict)
 
     allSolution = false
@@ -181,8 +182,6 @@ function print_design(design, param::Dict)
     end
 
     B, T = size(pg)
-
-    # Collect the sets of bus
     buildBus = Set()
     hardenBus = Set()
 
@@ -197,9 +196,9 @@ function print_design(design, param::Dict)
 
     totalExpand = sum(pg[:,T]) - sum(param[:Pg0])
     totalExpandBus = length(buildBus)
-    info("Expansion Design [New Generator Added $totalExpand on $totalExpandBus buses]")
+    info("Expansion || UNIT $totalExpand || BUS $totalExpandBus")
     for b in buildBus
-        print(string("[EXPAND]BUS $(b)[Ele=$(round.(param[:Ele][b],2)), Cost=$(round.(param[:Cg][b,1],2)), Cap=$(round.(param[:PgUB][b],2)), Top=$(param[:Pgbar][b]), Init=$(param[:Pg0][b])]"))
+        print("[EXPAND]BUS $(b)[Ele=$(round.(param[:Ele][b],2)), Cost=$(round.(param[:Cg][b,1],2)), Cap=$(round.(param[:PgUB][b],2)), Top=$(param[:Pgbar][b]), Init=$(param[:Pg0][b])]")
         for t in 1:T
             print(round.(abs(pg[b,t]), 0)," -> ")
         end
@@ -208,9 +207,9 @@ function print_design(design, param::Dict)
 
     totalHarden = sum(h[:,T]) - Int(sum(param[:H0]))
     totalHardenBus = length(hardenBus)
-    info("Harden Design [New harden added $totalHarden on $totalHardenBus buses]")
+    info("HARDENING || UNIT $totalHarden || BUS $totalHardenBus")
     for b in hardenBus
-        print(string("[HARDEN]BUS $(b)[Ele=$(round.(param[:Ele][b],2)), Cost=$(round.(param[:Ch][b,1],2)), Cap=$(round.(param[:PgUB][b],2)), Top=$(param[:Pgbar][b]), Init=$(param[:Pg0][b])] "))
+        print("[HARDEN]BUS $(b)[Ele=$(round.(param[:Ele][b],2)), Cost=$(round.(param[:Ch][b,1],2)), Cap=$(round.(param[:PgUB][b],2)), Top=$(param[:Pgbar][b]), Init=$(param[:Pg0][b])] ")
         for t in 1:T
             print(round.(abs(h[b,t]), 0)," -> ")
         end
@@ -260,9 +259,6 @@ function print_demand_summary(prob::oneProblem, sol::solnType)
 
 end
 
-"""
-    This subroutine parse a JSON file into a design type.
-"""
 function parse_design(dPath::AbstractString, param::Dict)
 
     df = JSON.parsefile(dPath)
@@ -290,8 +286,6 @@ function parse_design(dPath::AbstractString, param::Dict)
     return design
 end
 
-#This function works with the solutions and construct understandable
-#   interpretations of given solutions in Model().
 function get_primal_solution(prob::oneProblem, sol::solnType=solnType())
 
 	sol.primal = Dict();
@@ -320,10 +314,6 @@ function warm_start_problem(prob::oneProblem, sol::solnType=solnType())
     return oneProblem
 end
 
-
-"""
-    Currently utilized in deterministic algorithm.
-"""
 function print_scenario_selection(param::Dict, sol::solnType, exargs::Dict)
 
     if "sample-based-risk" in exargs[:FEATURES]
@@ -340,61 +330,5 @@ function print_scenario_selection(param::Dict, sol::solnType, exargs::Dict)
         S = param[:S]
         println("No implementation yet.")
     end
-
-end
-
-"""
-    TODO :
-"""
-function summary_design(param::Dict, design)
-
-    summary = Dict()
-
-    # TODO: collection information
-
-    return summary
-
-end
-
-
-"""
-    Handle two designs and compare them with details
-"""
-function compare_designs(param::Dict, solA, solB)
-
-    if isa(solA, designType)
-        buildA = solA.pg
-        expandA = sol.h
-    elseif isa(solA, solnType)
-        buildA = solA.primal[:pg]
-        expandA = solA.primal[:h]
-    else
-        error("ERROR|soln.jl|compare_designs|Unkown solution type")
-    end
-
-    if isa(solB, designType)
-        buildB = solB.pg
-        expandB = solB.h
-    elseif isa(solA, solnType)
-        buildB = solB.primal[:pg]
-        expandB = solB.primal[:h]
-    else
-        error("ERROR|soln.jl|compare_designs|Unkown solution type")
-    end
-
-    # Measure the matrix for parameter fetch, all other informaiton stored in param
-    B, T = size(buildA)
-
-    # Build comparsion
-    #   Total Build
-    #   Bus Selected
-    #   Location difference
-    #   ...
-
-    # Expand comparison
-    #   Total Expand
-    #   Bus Selected
-    #   Location differentce
-    #   ...
 
 end
