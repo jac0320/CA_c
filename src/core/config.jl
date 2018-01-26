@@ -36,7 +36,7 @@ function read_config(configPath::AbstractString="")
 	userARGS = parse_commandline_args()
 
     # Initialization of the configurations
-    config.INPUTPATH = joinpath(homedir(),"Inputs","Climate")
+    config.INPUTPATH = joinpath(homedir(),"Norfolk_2", "scenariopackage", "group_A")
     config.OUTPUTPATH = joinpath(homedir(), "Outputs", "Climate")
     config.TIMELIMIT = 10800
 	config.TIMELIMITII = 1800
