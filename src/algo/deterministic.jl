@@ -15,7 +15,7 @@ function deterministic(power::Dict, param::Dict, stoc::stocType, exargs::Dict)
 
 	info("Solving a problem with $numCols variables and $numRows constraints.")
 	info("Targe optimality gap is $(config.OPTGAP)")
-	solver_config(climate.model, mipgap=config.OPTGAP, timelimit=config.TIMELIMIT, MIPFocus="optimality", showlog=1, presolve=1, threads=16)
+	solver_config(climate.model, mipgap=config.OPTGAP, timelimit=config.TIMELIMIT, MIPFocus="optimality", showlog=1, presolve=1, threads=8)
 
 	start_solve = time()
 	status = solve(climate.model)
