@@ -12,6 +12,7 @@ module ADCCTypes
 		chance::Float64			# Probability of this scenario
 		pool::Array 			# Solution pool
 		scenarioType(i,data,c) = new(i,data,c,[])
+		scenarioType() = new()
 	end
 
 	type stocType
@@ -22,6 +23,7 @@ module ADCCTypes
 		sbdColumns	::Array					#Stores non-scenario spcific columns
 		meta 		::Dict
 		stocType(S,T,B) = new(S,T,B,Vector{scenarioType}(S),[],Dict())
+		stocType() = new()
 	end
 
 	type designType

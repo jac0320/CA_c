@@ -321,7 +321,7 @@ function check_feasible(power::Dict, param::Dict, stoc::stocType, soln, exargs::
 		if config.PARALLEL
 				solver_config(subprob.model, license=1, timelimit=20, showlog=0, focus="feasibility", presolve=1, threads=1)
 		else
-			solver_config(subprob.model, license=config.ENVS, timelimit=20, showlog=0, focus="feasibility", presolve=1, threads=1)
+			solver_config(subprob.model,timelimit=20, showlog=0, focus="feasibility", presolve=1, threads=1)
 		end
 
 		status = solve(subprob.model, suppress_warnings=true)
@@ -465,7 +465,7 @@ function check_slackness(power::Dict, param::Dict, stoc::stocType, soln, exargs:
 			# ============================= NEW MODIFIED SECTION ================================ #
 		end
 
-		solver_config(slackProb.model, license=config.ENVS, timelimit=1800, showlog=0, focus="optimality", presolve=1, threads=config.WORKERTHREADS)
+		solver_config(slackProb.model, timelimit=1800, showlog=0, focus="optimality", presolve=1, threads=config.WORKERTHREADS)
 
 		status = solve(slackProb.model, suppress_warnings=true)
 		if status == :Infeasible

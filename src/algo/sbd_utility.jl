@@ -377,8 +377,7 @@ function sbd_ubPool_solve(power::Dict, param::Dict, stoc::stocType, exargs::Dict
 		ubPoolProb = dsp_formulation(power, param, stoc, ubPool, exargs)
 		warmstart_heuristic(ubPoolProb, power, param, stoc, exargs, selection=ubPool)
 		info("[SBD] UB Pool todo-> $ubPool")
-		solver_config(license=config.ENVS,
-						ubPoolProb.model,
+		solver_config(ubPoolProb.model,
 						timelimit=timeleft,
 						mipgap=config.OPTGAP,
 						showlog=config.SHOWLOG,
@@ -503,7 +502,7 @@ function sbd_solve_master(power::Dict, param::Dict, stoc::stocType, exargs::Dict
 		master = sbd_master_formulation(power, param, stoc, exargs, exargs[:eps], [], prevSolution)
 	end
 
-	solver_config(master.model, license=config.ENVS, timelimit=config.TIMELIMITII, mipgap=config.OPTGAP, showlog=1, focus="optimality", presolve=1, threads=16)
+	solver_config(master.model,timelimit=config.TIMELIMITII, mipgap=config.OPTGAP, showlog=1, focus="optimality", presolve=1, threads=16)
 	status = solve(master.model)
 
 	if status == :Infeasible
