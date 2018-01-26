@@ -1,4 +1,4 @@
-function shcg_process_jobs(param::Dict, stoc::stocType, driver::Dict, builtmode::Vector{oneProblem}, incumb::Float)
+function shcg_process_jobs(param::Dict, stoc::stocType, driver::Dict, jobs::Vector, builtmode::Vector{oneProblem}, incumb::Float64)
 
 	if config[:PARALLEL]
 		tSolve = @elapsed cols = pmap((a1,a2,a3,a4)->shcg_solve_sp(a1,a2,a3,a4),
@@ -107,7 +107,6 @@ function search_incumb_col(pool::Vector{designType}, param::Dict)
 	return incumbcol
 end
 
-# TODO: add more
 function shcg_generate_jobs(param::Dict, solved::Dict; dim::Int=1)
 
 	S = param[:S]
@@ -211,7 +210,7 @@ function isolate_stage(param::Dict, stoc::stocType, driver::Dict; selection=[], 
 							[S for d in dPool])
 
 	else  # sequential implementation
-		sp_models = [build_sp(param, stoc, driver, selection=[s], sbtype="tight") for s in selection]
+		sp_models = [build_sp(param, stoc, driver, selection=[s], sbtype="free") for s in selection]
 		dPool = [iso_solve_block(sp_models[s], driver, source=[s]) for s in selection]
 		for d in dPool
 			iso_check_block(d, param, stoc, driver, builtmodel = sp_models)
@@ -230,7 +229,7 @@ function isolate_stage(param::Dict, stoc::stocType, driver::Dict; selection=[], 
 	return
 end
 
-function iso_solve_block(param::Dict, stoc::stocType, s::Int, driver::Dict,sbtype="tight")
+function iso_solve_block(param::Dict, stoc::stocType, s::Int, driver::Dict,sbtype="free")
 
 	p = build_sp(param, stoc, driver, selection=[s], sbtype=sbtype)
 	# warmstart_heuristic(p, stoc, driver, selection=[s])
@@ -273,7 +272,7 @@ end
 function iso_check_block(d::designType, param::Dict, stoc::stocType, driver::Dict; selection=[], builtmodel=nothing)
 
 	d.feamap = check_feasible(param, stoc, d, driver, builtmodel=builtmodel)
-	d.coverage = sum(d.feamap) / S
+	d.coverage = sum(d.feamap) / param[:S]
 
 	return d
 end

@@ -17,7 +17,7 @@ function adcc(;kwargs...)
     elseif driver[:ALGO] == "shcg" || driver[:ALGO] == "sbd"
         solution = shcg(param, stoc, driver, sbd_master_formulation, build_sp)
 
-	elseif driver[:ALGO] == "sbdnr" || driver[:ALGO] == "sbdnr"
+	elseif driver[:ALGO] == "shcgnr" || driver[:ALGO] == "shcgnr"
         solution = shcg_nr(param, stoc, driver)
 
 	elseif driver[:ALGO] == "heuristic" || driver[:ALGO] == "heu"

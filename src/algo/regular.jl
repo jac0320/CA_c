@@ -12,16 +12,16 @@ function deterministic(param::Dict, stoc::stocType, driver::Dict)
 
 	design = get_design(climate)
 	print_design(design, param)
-	write_output_files(solution, driver)
+	write_output_files(design, driver)
 
-	return solution
+	return design
 end
 
 # This function is the path towards a sketch room where user have the a lot of flexibility
-function basic_problem(prob::Dict, param::Dict, stoc::stocType, complete_formulation, driver::Dict, selection=[])
+function basic_problem(param::Dict, stoc::stocType, complete_formulation, driver::Dict, selection=[])
 
 	isempty(selection) ? selection = [1:param[:S];] : selection = selection
-	p = base_formulation(prob, param, stoc, driver)
+	p = base_formulation(param, stoc, driver)
 	complete_formulation(p, param, driver)
 
 	return p

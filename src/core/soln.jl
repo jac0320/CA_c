@@ -42,7 +42,7 @@ function get_design(model::JuMP.Model)
     return design
 end
 
-function get_design(prob::oneProblem)
+function get_design(prob::oneProblem, idx=0)
 
     valPg = convert(Array{Int}, round.(getvalue(prob.vars[:pg])))
     valH = convert(Array{Int}, round.(getvalue(prob.vars[:h])))

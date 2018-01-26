@@ -1,15 +1,12 @@
-function shcg(param::Dict, stoc::stocType, driver::Dict, master_formulation::Function, subprob_formulation::Function)
+function shcg(param::Dict, stoc::stocType, driver::Dict)
 
-	# Algorithm Initialization
 	S = param[:S]
 	eps = param[:eps]
 	st = time()
 	iter = 0
 	noImprove = 0
-	incumbub = Inf
-	incumblb = Inf
 	incumbgap = Inf
-	incumbcol = nothing
+
 	solved = Dict()
 	cgparameters = eval(parse(driver[:CGHEURISTIC]))(driver, findparameter=true)
 	isolate_stage(param, stoc, driver)
@@ -27,7 +24,7 @@ function shcg(param::Dict, stoc::stocType, driver::Dict, master_formulation::Fun
 		iter += 1 # Update iterator
 
 		info("[SBD] >>>>>>> Iteration $iter :: $incumbent")
-		columns_cleaner(stoc, incumbent)
+		# columns_cleaner(stoc, incumbent)
 
 		P = length([i for i in 1:length(stoc.sbdColumns) if stoc.sbdColumns[i].active])
 		info("[SBD] Active Count = $(P)")
@@ -120,40 +117,12 @@ function shcg_enu(param::Dict, stoc::stocType, driver::Dict; kwargs...)
 	jobs = shcg_generate_jobs(param, solved, dim=iter)
 	info("[ENU] Job Count = $(length(jobs))")
 
-	shcg_process_jobs(param, stoc, driver, builtmodel, incumb)
-	# if driver[:PARALLEL]
-	# 	tSolve = @elapsed cols = pmap((a1,a2,a3,a4)->shcg_solve_sp(a1,a2,a3,a4),
-	# 									[param for j in jobs],
-	# 									[stoc for j in jobs],
-	# 									[driver for j in jobs],
-	# 									[j for j in jobs])
-	# 	info("[ENU] Solve time $(tsolve)")
-    #
-	# 	groups = shcg_regroup_cols(cols, driver)
-	# 	tcheck = @elapsed groups = pmap((a1,a2,a3,a4)->shcg_check_fea(a1,a2,a3,a4),
-	# 									[param for g in groups],
-	# 									[stoc for g in groups],
-	# 									[driver for g in groups],
-	# 									[g for g in groups])
-	# 	info("[ENU] Feasibility check time $(tcheck)")
-    #
-	# 	tstore = @elapsed [shcg_store_col(stoc.sbdColumns, g, incumb=incumb) for g in groups]
-	# 	info("[ENU] Storaging time $(tstore)")
-	# else
-	# 	tsolve = @elapsed cols = [shcg_solve_sp(param, stoc, driver, j) for j in jobs]
-	# 	info("[ENU] Solve time $(tsolve)")
-    #
-	# 	tcheck = @elapsed cols = [iso_check_block(c, param, stoc, driver, builtmodel=builtmodel) for c in cols]
-	# 	info("[ENU] Feasibility check time $(tcheck)")
-    #
-	# 	tstore = @elapsed [shcg_store_col(stoc.sbdColumns, c, incumb=incumb) for c in cols]
-	# 	info("[ENU] Storaging time $(tstore)")
-	# end
+	shcg_process_jobs(param, stoc, driver, jobs, builtmodel, incumb)
 
 	return
 end
 
-function shcg_enu(driver::Dict; findparameter=false)
+function shcg_heu(driver::Dict; findparameter=false)
 
 	if findparameter
 		if driver[:CGMAX] > 0
@@ -178,19 +147,15 @@ function shcg_heu(param::Dict, stoc::stocType, driver::Dict; kwargs...)
 
 	S = param[:S]
 
-	ranklist = sort(collect(zip(isoCost,[1:S;])))
+	ranklist = sort(collect(zip(isoCost, [1:S;])))
 
-	pivotrank = mod(iter, param[:S]) + 1
+	pivotrank = mod(iter, S) + 1
 	dim = convert(Int, floor(iter/param[:S]))
 	pivot = ranklist[pivotrank][2]
 
-	# Pivot with selected job
 	jobs = shcg_generate_jobs(param, solved, pivot, dim=dim)
 
-	info("Running CG heuristic :: lineup_partial_heuristic")
-	incumblb = extras[:incumblb]
-
-	shcg_process_jobs(param, stoc, driver, builtmodel, incumb)
+	shcg_process_jobs(param, stoc, driver, jobs, builtmodel, incumb)
 
 	return
 end
@@ -237,9 +202,9 @@ function shcg_nr(param::Dict, stoc::stocType, driver::Dict; selection=[], isoCos
 				info("[SBD-NR: EXIT] POST OPT $(scenpool)")
 				postprob = build_sp(param, stoc, driver, selection=scenpool, sbtype="tight")
 				# warmstart_heuristic(postprob, stoc, driver, selection=scenpool)
-				config_solver(postprob, driver, timelimit=driver[:TIMELIMITII],focus="optimality")
+				config_solver(postprob.model, driver, timelimit=driver[:TIMELIMITII],focus="optimality")
 				status = solve(postprob.model, suppress_warnings=true)
-				incumbCol = get_design(postprob, idx=iter)
+				incumbCol = get_design(postprob)
 			end
 			write_output_files(incumbCol, driver)
 			print_design(incumbCol, param)

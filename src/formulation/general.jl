@@ -1,23 +1,23 @@
-function base_formulation(param::Dict, stoc::stocType, exargs::Dict, selection=[]; kwargs...)
+function base_formulation(param::Dict, stoc::stocType, driver::Dict, selection=[]; kwargs...)
+
+	isempty(selection) ? selection = [1:param[:S];] : selection = selection
 
 	base = oneProblem()
 	param = check_parameter_intactness(param)
-
-	isempty(selection) ? selection = [1:param[:S];] : selection = selection
 
 	post_adaptation_vars(base, param)
 	post_logical_vars(base, param, selection)
 
 	post_incremental_cons(base, param)
 	post_logical_cons(base, param, stoc, selection)
-	post_risk_cons(base, param, exargs, selection)
+	post_risk_cons(base, param, driver, selection)
 
 	post_adaptation_obj(base, param)
 
 	return base
 end
 
-function cb_model(prob::oneProblem, param::Dict, exargs::Dict, selection=[], sbtype="free")
+function cb_model(prob::oneProblem, param::Dict, driver::Dict, selection=[], sbtype="free")
 
 	isempty(selection) ? selection = [1:param[:S];] : selection = selection
 	post_cb_vars(prob, param, selection)
@@ -26,7 +26,7 @@ function cb_model(prob::oneProblem, param::Dict, exargs::Dict, selection=[], sbt
 	return prob
 end
 
-function cnf_model(prob::oneProblem, param::Dict, exargs::Dict, selection=[], sbtype="free")
+function cnf_model(prob::oneProblem, param::Dict, driver::Dict, selection=[], sbtype="free")
 
 	isempty(selection) ? selection = [1:param[:S];] : selection = selection
 	post_cnf_vars(prob, param, selection, sbtype)
@@ -35,7 +35,7 @@ function cnf_model(prob::oneProblem, param::Dict, exargs::Dict, selection=[], sb
 	return prob
 end
 
-function dcpf_model(prob::oneProblem, param::Dict, exargs::Dict, selection=[], sbtype="free")
+function dcpf_model(prob::oneProblem, param::Dict, driver::Dict, selection=[], sbtype="free")
 
 	isempty(selection) ? selection = [1:param[:S];] : selection = selection
 	post_dcpf_vars(prob, param, selection, sbtype)
