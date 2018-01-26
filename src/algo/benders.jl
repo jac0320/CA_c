@@ -28,7 +28,7 @@ function benders(master_variables, master_constraints, master_objective, subprob
 
     subprob_suite[:characteristic] = characteristic_formulation
 
-    info("Finished setting up the master/subprob suites...")
+    println("Finished setting up the master/subprob suites...")
 
     # ===================== Initialization ===================== #
     cuts = []
@@ -61,11 +61,11 @@ function benders(master_variables, master_constraints, master_objective, subprob
     feaCutCnt = 0
     optCutCnt = 0
 
-    info("Collecting master problem variables (symbolized)...")
+    println("Collecting master problem variables (symbolized)...")
 
     while true
         print("\n")
-        info("--- Iteration $iter ---")
+        println("--- Iteration $iter ---")
         iter += 1
 
         feaCut = false
@@ -95,14 +95,14 @@ function benders(master_variables, master_constraints, master_objective, subprob
             if status == :Optimal # Generate Optimality Cut
                 print("+")
                 if !feaCut
-                    # info("Problem feasible. Accumulating optimality cuts...")
+                    # println("Problem feasible. Accumulating optimality cuts...")
 
                     subprimal = subprob.model.colVal
                     subprimalObj = getobjectivevalue(subprob.model)
                     subprobSol = get_primal_solution(subprob)
 
                     # print("\n")
-                    # info("[Scenario $s] Subprob objective is $subprimalObj")
+                    # println("[Scenario $s] Subprob objective is $subprimalObj")
 
                     π = subprob.model.linconstrDuals
                     p = dataPackage[:stoc].scenarios[s].chance
@@ -203,7 +203,7 @@ function benders(master_variables, master_constraints, master_objective, subprob
             master.model = master_suite[:objective](master.model, master.vars, hasEta=true)
         end
 
-        # info("Solving master problem ...")
+        # println("Solving master problem ...")
         # setsolver(master.model, GurobiSolver(Presolve=1))
         status = solve(master.model)
 
@@ -219,7 +219,7 @@ function benders(master_variables, master_constraints, master_objective, subprob
         end
 
         print("\n")
-        info("[obj=$masterObj][time=$masterTime] Collecting master solutions ...")
+        println("[obj=$masterObj][time=$masterTime] Collecting master solutions ...")
     end
 end
 
@@ -436,7 +436,7 @@ end
 """
 function get_analytic_blocks(master::oneProblem, subprob_suite::Dict, dataPackage::Dict; kwargs...)
 
-    info("Obtaining analytical matrices/vectors...")
+    println("Obtaining analytical matrices/vectors...")
     S = dataPackage[:stoc].S
 
     @show S

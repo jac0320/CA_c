@@ -469,11 +469,11 @@ function check_slackness(power::Dict, param::Dict, stoc::stocType, soln, exargs:
 
 		status = solve(slackProb.model, suppress_warnings=true)
 		if status == :Infeasible
-			info("Original problem infeasible. Getting iis (this might take a while)...")
+			println("Original problem infeasible. Getting iis (this might take a while)...")
 			error("ERROR|sbd.jl|check_slackness()|Formulation issue")
 		end
 
-		info("[>>>] Scenario $(slackProbScenario) with slackness $(getobjectivevalue(slackProb.model))")
+		println("[>>>] Scenario $(slackProbScenario) with slackness $(getobjectivevalue(slackProb.model))")
 		push!(slackPool, getobjectivevalue(slackProb.model))
 		if abs(slackPool[end] - 0) > config.TOLERANCE
 			infeaDict[slackProbScenario] = slackPool[end]
@@ -523,7 +523,7 @@ function sbd_master_formulation(power::Dict, param::Dict, stoc::stocType, exargs
 	master.vars[:ACT] = @variable(m, ACT[1:S], Bin) 		# Indicates if a scenarios has been activated for feasible or not
 
 	if isa(prevSolution, solnType)
-		info("[SBD] Warm starting master problem with known solutions...")
+		println("[SBD] Warm starting master problem with known solutions...")
 		for i in 1:B
 			for j in 1:T
 				setvalue(master.vars[:pg][i,j], prevSolution.primal[:pg][i,j])
@@ -563,7 +563,7 @@ function sbd_master_formulation(power::Dict, param::Dict, stoc::stocType, exargs
 		sum(ACT[s] for s=1:S) >= master.S * (1-overrideEps))
 
 	if haskey(options, :incumbent)
-		info("[ISO] Adding valid inequalities to the master problem")
+		println("[ISO] Adding valid inequalities to the master problem")
 		@constraint(m, cuts_expr[k=1:poolLength; stoc.sbdColumns[k].lb > options[:incumbent]],
 			sum(ACT[s] for s in stoc.sbdColumns[k].source) <= length(stoc.sbdColumns[k].source)-1)
 	end

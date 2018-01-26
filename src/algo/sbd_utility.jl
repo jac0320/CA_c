@@ -21,7 +21,7 @@ function lineup_join_two_scenario(power::Dict, param::Dict, stoc::stocType, exar
 			# Mark the problem to be solved
 			testPool = [s, subs]
 			if haskey(solved, testPool) || haskey(solved, flipdim(testPool,1))
-				# info("($(myid()))[Solved] ~ $testPool")
+				# println("($(myid()))[Solved] ~ $testPool")
 			else
 				oneJointSubprob = subprob_formulation(power, param, stoc, testPool, exargs)
 				solver_config(oneJointSubprob.model, license=1, timelimit=config.TIMELIMITIII, mipgap=config.OPTGAP, showlog=config.SHOWLOG, focus="optimality", presolve=1, threads=config.WORKERTHREADS)
@@ -47,7 +47,7 @@ function lineup_join_two_scenario(power::Dict, param::Dict, stoc::stocType, exar
 				end
 				push!(designPool, oneDownwardDesign)
 				d = oneDownwardDesign
-				info("($(myid()))[Spinning-S $s] $(d.source) cost = <$(d.cost)($(round.(d.coverage*100,2))\%)> [LB >> $(round.(d.lb,2))][Time $(round.(d.time,2))s][Collector $(collectTime)];")
+				println("($(myid()))[Spinning-S $s] $(d.source) cost = <$(d.cost)($(round.(d.coverage*100,2))\%)> [LB >> $(round.(d.lb,2))][Time $(round.(d.time,2))s][Collector $(collectTime)];")
 				flush(STDOUT)
 			end
 		end
@@ -156,7 +156,7 @@ function lineup_groupdesign_fea(power::Dict, param::Dict, stoc::stocType, exargs
 	end
 
 	for d in designGroup
-		#info("[WORKER$(myid())]Start checking feasibility $(now())")
+		#println("[WORKER$(myid())]Start checking feasibility $(now())")
 		non,d.coverage,ifP,fP=check_feasible(power,param,stoc,d,exargs,[],precheck=false,builtModel=allSubprobs)
 		for subs in fP
 			d.feamap[subs] = 1
@@ -190,7 +190,7 @@ function sbd_checkLB(design::designType, stoc::stocType, UB::Float64, LB::Float6
 				# This mean we find a new incumbent, not necessarily optimal answer
 				print(">![", round.(gaptofixedLB,4), "<!")
 				if gaptofixedLB - 0.0 <= config.TOLERANCE
-					info("Locating optimal solution... But let's not not stop for now...")
+					println("Locating optimal solution... But let's not not stop for now...")
 					return true
 				end
 			end
@@ -376,7 +376,7 @@ function sbd_ubPool_solve(power::Dict, param::Dict, stoc::stocType, exargs::Dict
 	if !config.USESBDNORISK
 		ubPoolProb = dsp_formulation(power, param, stoc, ubPool, exargs)
 		warmstart_heuristic(ubPoolProb, power, param, stoc, exargs, selection=ubPool)
-		info("[SBD] UB Pool todo-> $ubPool")
+		println("[SBD] UB Pool todo-> $ubPool")
 		solver_config(ubPoolProb.model,
 						timelimit=timeleft,
 						mipgap=config.OPTGAP,
@@ -393,12 +393,12 @@ function sbd_ubPool_solve(power::Dict, param::Dict, stoc::stocType, exargs::Dict
 		stoc.sbdColumns = sbd_store_design(stoc.sbdColumns, ubPoolDesign, incumbent = Inf)
 	end
 
-	info("[SBD] UB pool is solved with objective >> $(ubPoolDesign.cost) [$(ubPoolDesign.coverage)] in [ $(getsolvetime(ubPoolProb.model))s]")
+	println("[SBD] UB pool is solved with objective >> $(ubPoolDesign.cost) [$(ubPoolDesign.coverage)] in [ $(getsolvetime(ubPoolProb.model))s]")
 
 	if ubPoolDesign.cost - fixedLB > config.TOLERANCE
-			info("[SBD] UB pool provide a feasible solution.")
+			println("[SBD] UB pool provide a feasible solution.")
 	else ubPoolDesign.cost - fixedLB <= config.TOLERANCE
-			info("[SBD] UB pool sufficient for optimality.")
+			println("[SBD] UB pool sufficient for optimality.")
 		return true, ubPoolProb
 	end
 
@@ -453,7 +453,7 @@ function columns_manager(stoc::stocType, kickScen, incumbent::Float64, exargs::D
 	end
 
 	if !isempty(eliminateScen)
-		info("[COLUMN MANAGER] Helped eliminate $(length(eliminateScen))")
+		println("[COLUMN MANAGER] Helped eliminate $(length(eliminateScen))")
 	end
 
 	return collect(eliminateScen)
@@ -467,7 +467,7 @@ function columns_cleaner(stoc::stocType, incumbent::Float64; kwargs...)
 
 	for i in 1:length(stoc.sbdColumns)
 		if stoc.sbdColumns[i].lb >= incumbent + config.TOLERANCE && stoc.sbdColumns[i].active
-			info("Deactivating column $(i) with cost $(round.(stoc.sbdColumns[i].cost,2)). [$(round.(incumbent,2))]\n")
+			println("Deactivating column $(i) with cost $(round.(stoc.sbdColumns[i].cost,2)). [$(round.(incumbent,2))]\n")
 			stoc.sbdColumns[i].active = false
 		end
 	end
@@ -514,12 +514,12 @@ function sbd_solve_master(power::Dict, param::Dict, stoc::stocType, exargs::Dict
 		masterDesign.time = getsolvetime(master.model)
 		masterDesign.cost = getobjectivevalue(master.model)
 		non, masterDesign.coverage, non, feaPool = check_feasible(power, param, stoc, masterDesign, exargs, [], precheck=true)
-		info("[MASTER] Master Objective = $(masterDesign.cost)[LB=$(masterDesign.lb)][$(masterDesign.time)s][", round.(masterDesign.coverage*100,2), "]")
-		info("[MASTER] Master solution information summary...")
+		println("[MASTER] Master Objective = $(masterDesign.cost)[LB=$(masterDesign.lb)][$(masterDesign.time)s][", round.(masterDesign.coverage*100,2), "]")
+		println("[MASTER] Master solution information summary...")
 		for y in 1:length(master.vars[:Y])
 			YValue = getvalue(master.vars[:Y])
 			if YValue[y] == 1
-				info("[MASTER] Column $y selected : [COST $(stoc.sbdColumns[y].cost)][SOURCE $(stoc.sbdColumns[y].source)][COVER $(stoc.sbdColumns[y].coverage)][TIME $(stoc.sbdColumns[y].time)][LB $(stoc.sbdColumns[y].lb)]")
+				println("[MASTER] Column $y selected : [COST $(stoc.sbdColumns[y].cost)][SOURCE $(stoc.sbdColumns[y].source)][COVER $(stoc.sbdColumns[y].coverage)][TIME $(stoc.sbdColumns[y].time)][LB $(stoc.sbdColumns[y].lb)]")
 			end
 		end
 		masterSolution = get_primal_solution(master)

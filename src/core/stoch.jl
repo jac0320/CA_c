@@ -12,7 +12,7 @@ end
 
 function read_stoch_file(filepath::String, exargs::Dict)
 
-    info("Stochastic file input :: $filepath")
+    println("Stochastic file input :: $filepath")
     if isfile(filepath)
         sinput = JSON.parsefile(filepath)
     elseif isfile(joinpath(config.INPUTPATH, exargs[:PROBLEM],filepath))
@@ -41,19 +41,19 @@ function read_stoch_file(filepath::String, exargs::Dict)
     if userT > stoc.T
         error("Trying to run model with high resolution failed. Scenario files is with less.")
     elseif userT == stoc.T
-        info("User model resolution matchs scenario inputs. No additional action needed.")
+        println("User model resolution matchs scenario inputs. No additional action needed.")
         userSteps = [1:stoc.T;]
     else
-        info("User model resolution coraser. With fixed horizon... resampling by corasen resolutions.")
+        println("User model resolution coraser. With fixed horizon... resampling by corasen resolutions.")
         userSteps = []
         if stoc.T % userT == 0
             userStepSize = Int(stoc.T/userT)
             for t in 1:userT
                 push!(userSteps, t * userStepSize)
             end
-            info("Scenario file input resolution $(stoc.T). Request resolution $(userT). ")
-            info("Extracting data by steps $(userSteps)")
-            info("Overriding stoc.T ")
+            println("Scenario file input resolution $(stoc.T). Request resolution $(userT). ")
+            println("Extracting data by steps $(userSteps)")
+            println("Overriding stoc.T ")
             stoc.T = userT
         else
             error("Time resolution corasion failed with mismatched data.")
@@ -268,7 +268,7 @@ end
 #     function read_stoch_file(filepath::AbstractString)
 #
 #         stoc = stocType()
-#         info("Stochastic file input :: $filepath")
+#         println("Stochastic file input :: $filepath")
 #         if isfile(filepath)
 #             stocDict = JSON.parsefile(filepath)
 #         elseif isfile(joinpath(config.INPUTPATH, exargs[:PROBLEM], filepath))
@@ -285,13 +285,13 @@ end
 #         if haskey(stocDict, "SL")
 #             hasSL = true
 #         else
-#             info("No sea level scnearios indicated in this stocFile. Using 0s.")
+#             println("No sea level scnearios indicated in this stocFile. Using 0s.")
 #         end
 #
 #         if haskey(stocDict, "SS")
 #             hasSS = true
 #         else
-#             info("No surge scenarios indicate in this stocFile. Using 0s.")
+#             println("No surge scenarios indicate in this stocFile. Using 0s.")
 #         end
 #
 #         if !hasSL && !hasSS
@@ -330,19 +330,19 @@ end
 #         if userT > stoc.T
 #             error("Trying to run model with high resolution failed. Scenario files is with less.")
 #         elseif userT == stoc.T
-#             info("User model resolution matchs scenario inputs. No additional action needed.")
+#             println("User model resolution matchs scenario inputs. No additional action needed.")
 #             userSteps = [1:stoc.T;]
 #         else
-#             info("User model resolution coraser. With fixed horizon... resampling by corasen resolutions.")
+#             println("User model resolution coraser. With fixed horizon... resampling by corasen resolutions.")
 #             userSteps = []
 #             if stoc.T % userT == 0
 #                 userStepSize = Int(stoc.T/userT)
 #                 for t in 1:userT
 #                     push!(userSteps, t * userStepSize)
 #                 end
-#                 info("Scenario file input resolution $(stoc.T). Request resolution $(userT). ")
-#                 info("Extracting data by steps $(userSteps)")
-#                 info("Overriding stoc.T ")
+#                 println("Scenario file input resolution $(stoc.T). Request resolution $(userT). ")
+#                 println("Extracting data by steps $(userSteps)")
+#                 println("Overriding stoc.T ")
 #                 stoc.T = userT
 #             else
 #                 error("Doesn't support corasion with mismatched data. No approximation on scnearios anymore")
@@ -431,7 +431,7 @@ end
 #     elseif mainMode == "file"
 #         if haskey(extras, :filepath)
 #             samples = read_stoch_file(extras[:filepath])
-#             info("Successfully read stoch file.")
+#             println("Successfully read stoch file.")
 #         else
 #             error("Please indicate stoch file path.")
 #         end
@@ -482,26 +482,26 @@ end
 
 function summary_scenarios(stoc::stocType, param::Dict)
 
-    info("[STOCH] Total Scenario $(stoc.S)")
-    info("[STOCH] Total Time Step Count $(stoc.T)")
-    info("[STOCH] Data shape => SLR $(size(stoc.scenarios[1].data["SL"]))")
-    info("[STOCH] Data shape => SS $(size(stoc.scenarios[1].data["SS"]))")
-    info("[STOCH] Minimum Bus Elevation => $(minimum(param[:Ele]))")
+    println("[STOCH] Total Scenario $(stoc.S)")
+    println("[STOCH] Total Time Step Count $(stoc.T)")
+    println("[STOCH] Data shape => SLR $(size(stoc.scenarios[1].data["SL"]))")
+    println("[STOCH] Data shape => SS $(size(stoc.scenarios[1].data["SS"]))")
+    println("[STOCH] Minimum Bus Elevation => $(minimum(param[:Ele]))")
     max_slr = 0.0
     for s in 1:stoc.S
         max_slr = max(max_slr, maximum(stoc.scenarios[s].data["SL"]))
     end
-    info("[STOCH] MAX-SLR => $(max_slr)")
-    info("[STOCH] BUS under MAX-SLR => $(length(param[:Ele][param[:Ele] .<= max_slr]))")
+    println("[STOCH] MAX-SLR => $(max_slr)")
+    println("[STOCH] BUS under MAX-SLR => $(length(param[:Ele][param[:Ele] .<= max_slr]))")
     for s in 1:stoc.S
-        info("[STOCH][S=$s] SLR $(stoc.scenarios[s].data["SL"])")
-        info("[STOCH][S=$s] BUS under SS ")
+        println("[STOCH][S=$s] SLR $(stoc.scenarios[s].data["SL"])")
+        println("[STOCH][S=$s] BUS under SS ")
         for t in 1:stoc.T
             ss_bus_cnt = 0
             for b in 1:param[:B]
                 if param[:Ele][b] < stoc.scenarios[s].data["SS"][b,t]
                     ss_bus_cnt += 1
-                    info("BUS $(b) surged by $(round(stoc.scenarios[s].data["SS"][b,t]-param[:Ele][b],2))m without protection. (LOAD = $(param[:Pd][b]) | CAP = $(param[:PgUB][b]))")
+                    println("BUS $(b) surged by $(round(stoc.scenarios[s].data["SS"][b,t]-param[:Ele][b],2))m without protection. (LOAD = $(param[:Pd][b]) | CAP = $(param[:PgUB][b]))")
                 end
             end
             println("T$(t)=>$(ss_bus_cnt); ")

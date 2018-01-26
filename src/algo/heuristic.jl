@@ -6,24 +6,24 @@ function reactor(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwargs.
     B = param[:B]
 
     # Generate a no hurricane scenario
-    info("[REACTOR]Generating null scenario...")
+    println("[REACTOR]Generating null scenario...")
     zeroStoc = create_null_samples(param[:B], param[:T])
 
     # Solve the no hurricane scenario for a expansion plan
     expandProb = oneProblem()
     expandProb = sbd_base_formulation(power, param, zeroStoc)
     expandProb = attach_scenario(expandProb, zeroStoc, [1], exargs[:MODEL], 0.0, exargs)
-    info("[REACTOR]Checking expansion plan using optimization...")
+    println("[REACTOR]Checking expansion plan using optimization...")
     status = solve(expandProb.model, suppress_warnings=true)
 
     # Collect results (Dimension [B, T])
-    info("[REACTOR]Heuristic expansion plan generated with total cost $(getobjectivevalue(expandProb.model))")
+    println("[REACTOR]Heuristic expansion plan generated with total cost $(getobjectivevalue(expandProb.model))")
     expandPlan = getvalue(expandProb.vars[:pg])
 
     # Consider only one scenario of the stocType by random
     pickIdx = rand([1:stoc.S;])
     pickScenario = stoc.scenarios[pickIdx]
-    info("[REACTOR]Constructing Hardening base on scenario $(pickIdx)")
+    println("[REACTOR]Constructing Hardening base on scenario $(pickIdx)")
 
     closePlan = ones(B, T)
     for b in 1:B
@@ -43,7 +43,7 @@ function reactor(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwargs.
             if closePlan[b,t] == 1 && pickScenario.data["SS"][b,t-1] > param[:Ele][b]
                 # Build harden facility incrementally base-on previous time step information (reactively)
                 hardenPlan[b,t] = max(hardenPlan[b,t-1], ceil((pickScenario.data["SS"][b,t-1] - param[:Ele][b])/param[:ProM][b]))
-                info("[REACTOR]Bus $b need $(hardenPlan[b,t]) hardenings at time step $t")
+                println("[REACTOR]Bus $b need $(hardenPlan[b,t]) hardenings at time step $t")
             end
         end
     end
@@ -52,7 +52,7 @@ function reactor(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwargs.
     for b in 1:B
         hardenPlan[b, 1] = floor(hardenPlan[b, 2]/2)
         if hardenPlan[b, 1] > 0.0
-            info("[REACTOR]Bus $b need $(hardenPlan[b,1]) hardenings at time step 1")
+            println("[REACTOR]Bus $b need $(hardenPlan[b,1]) hardenings at time step 1")
         end
     end
 
@@ -61,7 +61,7 @@ function reactor(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwargs.
     hDesign.h = hardenPlan
 
     totalcost, expandcost, hardencost = get_design_cost(hDesign, param)
-    info(string("[REACTOR]The total cost is $totalcost = $expandcost + $hardencost"))
+    println(string("[REACTOR]The total cost is $totalcost = $expandcost + $hardencost"))
 
     write_output_files(power, param, stoc, hDesign, exargs)
     print_design(hDesign, param)
@@ -77,7 +77,7 @@ function highland(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwargs
     B = param[:B]
 
     # Generate a no hurricane scenario
-    info("[HIGHLAND] Generating null scenario...")
+    println("[HIGHLAND] Generating null scenario...")
     zeroStoc = create_null_samples(param[:B], param[:T])
 
     # Solve the no hurricane scenario for a expansion plan
@@ -91,7 +91,7 @@ function highland(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwargs
     percSS = get_percentile_SS(stoc, 90, [pickIdx])
 
     # percSS = mean(param[:Ele])/2
-    info("[HIGHLAND] Criteria 90 percentile recorded storm surage $(percSS)")
+    println("[HIGHLAND] Criteria 90 percentile recorded storm surage $(percSS)")
     rejectbus = 0
     for i=1:B
         if param[:Ele][i] < percSS
@@ -100,19 +100,19 @@ function highland(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwargs
             rejectbus += 1
         end
     end
-    info("[HIGHLAND] Rejected total $(rejectbus) buses' location")
+    println("[HIGHLAND] Rejected total $(rejectbus) buses' location")
 
-    info("[HIGHLAND] Checking expansion plan using optimization...")
+    println("[HIGHLAND] Checking expansion plan using optimization...")
     status = solve(expandProb.model, suppress_warnings=true)
     if status == :Infeasible
-        info("[HIGHLAND] MARK Infeasible expansion plan located.")
+        println("[HIGHLAND] MARK Infeasible expansion plan located.")
     end
 
     # Collect results (Dimension [B, T])
-    info("[HIGHLAND] Heuristic expansion plan generated with total cost $(getobjectivevalue(expandProb.model))")
+    println("[HIGHLAND] Heuristic expansion plan generated with total cost $(getobjectivevalue(expandProb.model))")
     expandPlan = getvalue(expandProb.vars[:pg])
 
-    info("[HIGHLAND] Constructing Hardening base on scenario $(pickIdx)")
+    println("[HIGHLAND] Constructing Hardening base on scenario $(pickIdx)")
 
     closePlan = ones(B, T)
     for b in 1:B
@@ -129,7 +129,7 @@ function highland(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwargs
             hardenPlan[b,t] = hardenPlan[b,t-1]
             if closePlan[b,t] == 1 && pickScenario.data["SS"][b,t-1] > param[:Ele][b]
                 hardenPlan[b,t] = max(hardenPlan[b,t-1], ceil((pickScenario.data["SS"][b,t-1] - param[:Ele][b])/param[:ProM][b]))
-                info("[HIGHLAND] Bus $b need $(hardenPlan[b,t]) hardenings at time step $t")
+                println("[HIGHLAND] Bus $b need $(hardenPlan[b,t]) hardenings at time step $t")
             end
         end
     end
@@ -137,7 +137,7 @@ function highland(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwargs
     for b in 1:B
         hardenPlan[b, 1] = floor(hardenPlan[b, 2]/2)
         if hardenPlan[b, 1] > 0.0
-            info("[REACTOR] Bus $b need $(hardenPlan[b,1]) hardenings at time step 1")
+            println("[REACTOR] Bus $b need $(hardenPlan[b,1]) hardenings at time step 1")
         end
     end
 
@@ -146,7 +146,7 @@ function highland(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwargs
     hDesign.h = hardenPlan
 
     totalcost, expandcost, hardencost = get_design_cost(hDesign, param)
-    info(string("[HIGHLAND] The total cost is $totalcost = $expandcost + $hardencost"))
+    println(string("[HIGHLAND] The total cost is $totalcost = $expandcost + $hardencost"))
 
     write_output_files(power, param, stoc, hDesign, exargs)
     print_design(hDesign, param)
@@ -162,7 +162,7 @@ function bathtub(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwargs.
     B = param[:B]
 
     # Generate a no hurricane scenario
-    info("[BATHTUB]Generating null scenario...")
+    println("[BATHTUB]Generating null scenario...")
     zeroStoc = create_null_samples(B, T)
 
     # Solve the no hurricane scenario for a expansion plan
@@ -170,24 +170,24 @@ function bathtub(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwargs.
     expandProb = sbd_base_formulation(power, param, zeroStoc)
     expandProb = attach_scenario(expandProb, zeroStoc, [1], exargs[:MODEL], 0.0, exargs)
 
-    info("[BATHTUB]Checking expansion plan using basic optimization...")
+    println("[BATHTUB]Checking expansion plan using basic optimization...")
     status = solve(expandProb.model, suppress_warnings=true)
 
     # Collect results (Dimension [B, T])
-    info("[BATHTUB]Heuristic expansion plan generated with total cost $(getobjectivevalue(expandProb.model))")
+    println("[BATHTUB]Heuristic expansion plan generated with total cost $(getobjectivevalue(expandProb.model))")
     expandPlan = getvalue(expandProb.vars[:pg])
 
     # Consider only one scenario of the stocType by random
     pickIdx = rand([1:stoc.S;])
     pickScenario = stoc.scenarios[pickIdx]
     maxSS = get_percentile_SS(stoc, 100, [pickIdx])
-    info("[BATHTUB]Constructing Hardening base on scenario $(pickIdx)")
+    println("[BATHTUB]Constructing Hardening base on scenario $(pickIdx)")
 
     closePlan = ones(B, T)
     for b in 1:B
         for t in 1:T
             if pickScenario.data["SL"][t] >= param[:Ele][b]
-                info("[BATHTUB] Bus $b closed due to sea level rise")
+                println("[BATHTUB] Bus $b closed due to sea level rise")
                 closePlan[b,t] = 0  #Bus is closed due to sea level rise
             end
         end
@@ -202,7 +202,7 @@ function bathtub(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwargs.
             if closePlan[b,t] == 1 && pickScenario.data["SS"][b,t] >= param[:Ele][b]
                 # hardenPlan[b,t] = round.((maximum(param[:Ele]) - param[:Ele][b])/param[:ProM][b])
                 hardenPlan[b,t] = ceil.((maxSS - param[:Ele][b])/param[:ProM][b])
-                info("[BATHTUB]Bus $b need $(hardenPlan[b,t]) hardenings at time step $t")
+                println("[BATHTUB]Bus $b need $(hardenPlan[b,t]) hardenings at time step $t")
             end
         end
     end
@@ -212,7 +212,7 @@ function bathtub(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwargs.
     hDesign.h = hardenPlan
 
     totalcost, expandcost, hardencost = get_design_cost(hDesign, param)
-    info(string("[BATHTUB]The total cost is $totalcost = $expandcost + $hardencost"))
+    println(string("[BATHTUB]The total cost is $totalcost = $expandcost + $hardencost"))
 
     write_output_files(power, param, stoc, hDesign, exargs)
     print_design(hDesign, param)
@@ -231,10 +231,10 @@ function extreme(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwargs.
     pickIdx = rand([1:stoc.S;])
     pickScenario = stoc.scenarios[pickIdx]
     maxSS = get_percentile_SS(stoc, 100, [pickIdx])
-    info("[EXTREME]Constructing Hardening base on scenario $(pickIdx)")
+    println("[EXTREME]Constructing Hardening base on scenario $(pickIdx)")
 
     # Generate a no hurricane scenario
-    info("[EXTREME]Generating null scenario...")
+    println("[EXTREME]Generating null scenario...")
     zeroStoc = create_null_samples(B, T)
     zeroStoc.scenarios[1].data["SL"] = copy(pickScenario.data["SL"])
 
@@ -243,21 +243,21 @@ function extreme(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwargs.
     expandProb = sbd_base_formulation(power, param, zeroStoc)
     expandProb = attach_scenario(expandProb, zeroStoc, [1], exargs[:MODEL], 0.0, exargs)
 
-    info("[EXTREME]Checking expansion plan using basic optimization...")
+    println("[EXTREME]Checking expansion plan using basic optimization...")
     solver_config(expandProb.model, showlog=1, presolve=1, mipgap=0.0)
     status = solve(expandProb.model, suppress_warnings=true)
 
     writeLP(expandProb.model,"95p.lp")
 
     # Collect results (Dimension [B, T])
-    info("[EXTREME]Heuristic expansion plan generated with total cost $(getobjectivevalue(expandProb.model))")
+    println("[EXTREME]Heuristic expansion plan generated with total cost $(getobjectivevalue(expandProb.model))")
     expandPlan = getvalue(expandProb.vars[:pg])
 
     closePlan = ones(B, T)
     for b in 1:B
         for t in 1:T
             if pickScenario.data["SL"][t] >= param[:Ele][b]
-                info("[EXTREME] Bus $b closed due to sea level rise")
+                println("[EXTREME] Bus $b closed due to sea level rise")
                 closePlan[b,t] = 0  #Bus is closed due to sea level rise
                 @show param[:aslDet][b,t]
             else
@@ -275,7 +275,7 @@ function extreme(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwargs.
             if pickScenario.data["SS"][b,t] >= param[:Ele][b]
                 hardenPlan[b,t] = ceil((1.1*maximum(pickScenario.data["SS"]) - param[:Ele][b])/param[:ProM][b])
                 # hardenPlan[b,t] = round.(maxSS - param[:Ele][b])/param[:ProM][b]
-                info("[EXTREME]Bus $b need $(hardenPlan[b,t]) hardenings at time step $t")
+                println("[EXTREME]Bus $b need $(hardenPlan[b,t]) hardenings at time step $t")
             end
         end
     end
@@ -285,7 +285,7 @@ function extreme(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwargs.
     hDesign.h = hardenPlan
 
     totalcost, expandcost, hardencost = get_design_cost(hDesign, param)
-    info(string("[EXTREME]The total cost is $totalcost = $expandcost + $hardencost"))
+    println(string("[EXTREME]The total cost is $totalcost = $expandcost + $hardencost"))
 
     write_output_files(power, param, stoc, hDesign, exargs)
     print_design(hDesign, param)

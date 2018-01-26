@@ -41,7 +41,7 @@ function enumerate_solve_subset(power::Dict, param::Dict, stoc::stocType, exargs
 	design = get_design(oneJointSubprob.model)
 	totalcost, expandcost, hardencost = get_design_cost(design, param)
 
-	info("[ENUMERATE]Scenario $(subset): The total cost is $(totalcost) = $(expandcost) + $(hardencost)")
+	println("[ENUMERATE]Scenario $(subset): The total cost is $(totalcost) = $(expandcost) + $(hardencost)")
 
 	return subset, obj
 end

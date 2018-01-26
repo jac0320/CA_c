@@ -11,7 +11,7 @@ function write_output_files(power::Dict, param::Dict, stoc::stocType, solution, 
 		try
 			rm(designFilepath)
 		catch e
-			info("Creating new design output file.")
+			println("Creating new design output file.")
 		end
 		write_json(power,designFilepath)
 
@@ -19,7 +19,7 @@ function write_output_files(power::Dict, param::Dict, stoc::stocType, solution, 
 			try
 				rm(paramFilepath)
 			catch e
-				info("Creating new param output file")
+				println("Creating new param output file")
 			end
 			write_json(param,paramFilepath)
 		end
@@ -58,9 +58,9 @@ end
 
 function screen_output(solution::solnType)
 	if config.SCREENSHOW == true
-		info(":: Solution pg :: ")
+		println(":: Solution pg :: ")
 		println(solution.primal[:pg])
-		info(":: Solution h :: ")
+		println(":: Solution h :: ")
 		println(solution.primal[:h])
 		flush(STDOUT)
 	end

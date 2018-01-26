@@ -3,7 +3,7 @@ function read_power(exargs::Dict)
 	pname = exargs[:PROBLEM]
 	if pname in ["ieee14", "ieee118", "ieee118p", "gs4", "lmbd3"]
 		power = PowerModels.parse_file(joinpath(".", "instance", "$(pname).m"))
-		info("Finish reading $(pname) power data...")
+		println("Finish reading $(pname) power data...")
 		return power
 	else
 		error("No instance network found.")
@@ -164,7 +164,7 @@ function populate_edge(param::Dict, exargs::Dict)
         param[:Lcap][from, to] = param[:line][l]["rate_a"] * 100 * exargs[:CONGESTLambda]
         param[:EDGE][from, to] = 1
         if (from in param[:Edge][to]["in"])
-            info("Found double coordior ($to, $from)")
+            println("Found double coordior ($to, $from)")
             param[:Lcap][from, to] += param[:Lcap][from, to]
         else
             push!(param[:Edge][to]["in"],from)
@@ -188,7 +188,7 @@ function populate_demand(param::Dict, exargs::Dict)
             param[:Pd][b, t] = param[:Pd][b, t-1]*(1+exargs[:DEMANDLambda])
         end
     end
-    info("Total Demand Growth $(sum(param[:Pd][:,T])-sum(param[:Pd][:,1])) MW")
+    println("Total Demand Growth $(sum(param[:Pd][:,T])-sum(param[:Pd][:,1])) MW")
 
     return param
 end
@@ -288,7 +288,7 @@ function lambdaCostTune(Cg::Array, Ch::Array, lambda::Float64)
         totalCh = sum(Ch)
         origLambda = totalCg / (totalCg+totalCh)
 
-        info("Original lambda $origLambda vs $lambda")
+        println("Original lambda $origLambda vs $lambda")
 
         totalC = totalCg + totalCh
 

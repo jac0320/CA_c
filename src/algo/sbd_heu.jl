@@ -12,7 +12,7 @@ function improver_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 	extras = Dict(kwargs)
 
 	if haskey(extras, :findparameter)
-		info("[CG-MIP] Fetching parameter setup from improver_heuristic...")
+		println("[CG-MIP] Fetching parameter setup from improver_heuristic...")
 		if exargs[:CGMAX] > 0
 			return Dict(:noimprovestop=>exargs[:CGMAX])
 		else
@@ -20,7 +20,7 @@ function improver_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 		end
 	end
 
-	info("[CG-IMP]Running CG heuristic :: improver_heuristic")
+	println("[CG-IMP]Running CG heuristic :: improver_heuristic")
 
 	fixedLB = extras[:fixedLB]
 	S = exargs[:S]
@@ -34,7 +34,7 @@ function improver_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 	if config.PARALLEL
 
 		# ====================== Spinning Scenario Phase ======================= #
-		info("[SPINNING]pickScenarioPool is $pickScenarioPool")
+		println("[SPINNING]pickScenarioPool is $pickScenarioPool")
 		spinningPairPool = lineup_generate_pool(stoc, pickScenarioPool, pickScenarioPool, solved)
 
 		for pair in spinningPairPool
@@ -52,32 +52,32 @@ function improver_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 														[exargs for pair in spinningPairPool],
 														[pair for pair in spinningPairPool],
 														[subprob_formulation for pair in spinningPairPool])
-		info("[SPINNING] Solving paried pool took $(solvePairTime)")
+		println("[SPINNING] Solving paried pool took $(solvePairTime)")
 		tictoc += solvePairTime
-		info("[TICTOC] Finished spinning solving phase TIME = $tictoc")
+		println("[TICTOC] Finished spinning solving phase TIME = $tictoc")
 
 		# Regroup the calculated designs for feasibility check
 		spinningGroupPairDesigns = lineup_regroup_design(spinningPairDesigns)
-		info("[SPINNING] Paired design pool was parititioned into $(length(spinningGroupPairDesigns)) groups")
+		println("[SPINNING] Paired design pool was parititioned into $(length(spinningGroupPairDesigns)) groups")
 		feaCheckTime = @elapsed checkedDesigns = pmap((a1,a2,a3,a4,a5)->lineup_groupdesign_fea(a1,a2,a3,a4,a5),
 														[power for group in spinningGroupPairDesigns],
 														[param for group in spinningGroupPairDesigns],
 														[stoc for group in spinningGroupPairDesigns],
 														[exargs for group in spinningGroupPairDesigns],
 														[group for group in spinningGroupPairDesigns])
-		info("[SPINNING] Checking generated design's feasibility took $(feaCheckTime)")
+		println("[SPINNING] Checking generated design's feasibility took $(feaCheckTime)")
 		tictoc += feaCheckTime
-		info("[TICTOC] After finishing spinning post process TIME = $tictoc")
+		println("[TICTOC] After finishing spinning post process TIME = $tictoc")
 
 		for g in checkedDesigns
 			for d in g
-				info("([Spinning-S] $(d.source) cost = <$(round.(d.cost,2))($(round.(d.coverage*100,2))\%)> [LB >> $(round.(d.lb,2))];\n")
+				println("([Spinning-S] $(d.source) cost = <$(round.(d.cost,2))($(round.(d.coverage*100,2))\%)> [LB >> $(round.(d.lb,2))];\n")
 				stoc.sbdColumns = sbd_store_design(stoc.sbdColumns, d)
 			end
 		end
 
 		# ====================== Blending Scenarios Phase ====================== #
-		info("[BLENDING] blendSet is $blendSet")
+		println("[BLENDING] blendSet is $blendSet")
 		# Generate a set of pairs that are required to be solved
 		blendPairPool = lineup_generate_pool(stoc, blendSet, pickScenarioPool, solved)
 		for pair in blendPairPool
@@ -96,13 +96,13 @@ function improver_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 														[pair for pair in blendPairPool],
 														[subprob_formulation for pair in blendPairPool])
 
-		info("[BLENDING] Solving paried pool took $(solvePairTime)")
+		println("[BLENDING] Solving paried pool took $(solvePairTime)")
 		tictoc += solvePairTime
-		info("[TICTOC] After finished blending solving phase TIME = $tictoc")
+		println("[TICTOC] After finished blending solving phase TIME = $tictoc")
 
 		# Regroup the calculated designs for feasibility check
 		blendGroupPairDesigns = lineup_regroup_design(blendPairDesigns)
-		info("[BLENDING] Paired design pool was parititioned into $(length(blendGroupPairDesigns)) groups")
+		println("[BLENDING] Paired design pool was parititioned into $(length(blendGroupPairDesigns)) groups")
 
 		# Conduct feasibility check in parallel, warm start scheme can be applied here
 		feaCheckTime=@elapsed blendGroupPairDesigns = pmap((a1,a2,a3,a4,a5)->lineup_groupdesign_fea(a1,a2,a3,a4,a5),
@@ -111,14 +111,14 @@ function improver_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 														[stoc for group in blendGroupPairDesigns],
 														[exargs for group in blendGroupPairDesigns],
 														[group for group in blendGroupPairDesigns])
-		info("[BLENDING] Checking generated design's feasibility took $(feaCheckTime)")
+		println("[BLENDING] Checking generated design's feasibility took $(feaCheckTime)")
 		tictoc += feaCheckTime
-		info("[TICTOC] After finishing blending post process TIME = $tictoc")
+		println("[TICTOC] After finishing blending post process TIME = $tictoc")
 
 		# Collect all accumulated columns into the public pool
 		for g in blendGroupPairDesigns
 			for d in g
-				info("($(myid()))[Blending-S] $(d.source) cost = <$(round.(d.cost,2))($(round.(d.coverage*100,2))\%)> [LB >> $(round.(d.lb,2))];\n")
+				println("($(myid()))[Blending-S] $(d.source) cost = <$(round.(d.cost,2))($(round.(d.coverage*100,2))\%)> [LB >> $(round.(d.lb,2))];\n")
 				stoc.sbdColumns = sbd_store_design(stoc.sbdColumns, d)
 			end
 		end
@@ -127,11 +127,11 @@ function improver_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 		# =============================== Sequential Mode =============================== #
 
 		# ====================== Spinning Scenario Phase ======================= #
-		info("[SPINNING]pickScenarioPool is $pickScenarioPool")
+		println("[SPINNING]pickScenarioPool is $pickScenarioPool")
 		# Generate a set of pairs that are required to be solved
 		spinningPairPool = lineup_generate_pool(stoc, pickScenarioPool, pickScenarioPool, solved)
 
-		info("SPINNING TODO Counts: $(length(spinningPairPool))")
+		println("SPINNING TODO Counts: $(length(spinningPairPool))")
 		# Prepare a solution space for carrying design solutions
 		spinningPairDesigns = Array{designType}(length(spinningPairPool))
 
@@ -144,7 +144,7 @@ function improver_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 			solveTime += idxSolveTime
 			solved[pair] = 1
 		end
-		info("[SPINNING] Solving paried pool took $(solveTime)")
+		println("[SPINNING] Solving paried pool took $(solveTime)")
 
 		# Check each generated design sequentially
 		feaCheckTime = 0.0
@@ -159,7 +159,7 @@ function improver_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 			for i in 1:length(spinningPairDesigns)
 				singleCheckTime = @elapsed spinningPairDesigns[i] = isolate_check_one_design_feasibility(power, param, stoc, exargs, spinningPairDesigns[i], stoc.S, builtModel = allSubprobs)
 				d = spinningPairDesigns[i]
-				info("($(myid()))[Spinning-S] $(d.source) cost = <$(round.(d.cost,2))(Cover $(round.(d.coverage,2)))(Time $(round.(d.time,2))s\%)> [LB >> $(round.(d.lb,2))];")
+				println("($(myid()))[Spinning-S] $(d.source) cost = <$(round.(d.cost,2))(Cover $(round.(d.coverage,2)))(Time $(round.(d.time,2))s\%)> [LB >> $(round.(d.lb,2))];")
 				feaCheckTime += singleCheckTime
 			end
 		else
@@ -169,19 +169,19 @@ function improver_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 				feaCheckTime += singleCheckTime
 			end
 		end
-		info("[SPINNING] Checking generated design's feasibility took $(feaCheckTime)")
+		println("[SPINNING] Checking generated design's feasibility took $(feaCheckTime)")
 
 		# Collect all accumulated columns into the public pool
 		for d in spinningPairDesigns
-			# info("($(myid()))[Spinning-S] $(d.source) cost = <$(round.(d.cost,2))($(round.(d.time,2))s\%)> [LB >> $(round.(d.lb,2))];")
+			# println("($(myid()))[Spinning-S] $(d.source) cost = <$(round.(d.cost,2))($(round.(d.time,2))s\%)> [LB >> $(round.(d.lb,2))];")
 			stoc.sbdColumns = sbd_store_design(stoc.sbdColumns, d)
 		end
 
 		# ====================== Blending Scenario Phase ======================= #
-		info("[BLENDING]blendSet is $blendSet")
+		println("[BLENDING]blendSet is $blendSet")
 		# Generate a set of pairs that are required to be solved
 		blendPairPool = lineup_generate_pool(stoc, blendSet, pickScenarioPool, solved)
-		info("[BLENDING] Blending phase TODO counts $(length(blendPairPool))")
+		println("[BLENDING] Blending phase TODO counts $(length(blendPairPool))")
 		# Prepare a solution space for carrying design solutions
 		blendPairDesigns = Array{designType}(length(blendPairPool))
 
@@ -194,7 +194,7 @@ function improver_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 			solveTime += idxSolveTime
 			solved[pair] = 1
 		end
-		info("[BLENDING] Solving paried pool took $(solveTime)")
+		println("[BLENDING] Solving paried pool took $(solveTime)")
 
 		# Check each generated design sequentially
 		feaCheckTime = 0.0
@@ -210,11 +210,11 @@ function improver_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 		# 		feaCheckTime += singleCheckTime
 		# 	end
 		end
-		info("[BLENDING] Checking generated design's feasibility took $(feaCheckTime)")
+		println("[BLENDING] Checking generated design's feasibility took $(feaCheckTime)")
 
 		# Collect all accumulated columns into the public pool
 		for d in blendPairDesigns
-			info("($(myid()))[BLENDING-S] $(d.source) cost = <$(round.(d.cost,2))($(round.(d.coverage*100,2))\%)> [LB >> $(round.(d.lb,2))];")
+			println("($(myid()))[BLENDING-S] $(d.source) cost = <$(round.(d.cost,2))($(round.(d.coverage*100,2))\%)> [LB >> $(round.(d.lb,2))];")
 			stoc.sbdColumns = sbd_store_design(stoc.sbdColumns, d)
 		end
 
@@ -237,7 +237,7 @@ function partial_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 	extras = Dict(kwargs)
 
 	if haskey(extras, :findparameter)
-		info("Fetching parameter setup from improver_heuristic...")
+		println("Fetching parameter setup from improver_heuristic...")
 		if exargs[:CGMAX] > 0
 			return Dict(:noimprovestop=>exargs[:CGMAX])
 		else
@@ -245,7 +245,7 @@ function partial_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 		end
 	end
 
-	info("Running CG heuristic :: lineup_partial_heuristic")
+	println("Running CG heuristic :: lineup_partial_heuristic")
 	fixedLB = extras[:fixedLB]
 	S = exargs[:S]
 
@@ -278,12 +278,12 @@ function partial_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 	if config.PARALLEL
 
 		# ====================== Spinning Scenario Phase ======================= #
-		info("[PARTIAL]pickScenarioPool is $pickScenarioPool")
+		println("[PARTIAL]pickScenarioPool is $pickScenarioPool")
 
 		# Collect a set of iso costs
 		isoCosts = []
 		isoIdx = [] # The mismatch resulted from master problem selection
-		info("[PARTIAL] CG Heuristic response on iteration $iterIdxer")
+		println("[PARTIAL] CG Heuristic response on iteration $iterIdxer")
 		restIdx = []
 		restCosts = []
 		for s in 1:exargs[:S]
@@ -295,20 +295,20 @@ function partial_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 				push!(restIdx, s)
 			end
 		end
-		info("[PARTIAL] CG Heuristic collect isoCosts $isoCosts")
-		info("[PARTIAL] CG Heuristic coressponding idx $isoIdx")
+		println("[PARTIAL] CG Heuristic collect isoCosts $isoCosts")
+		println("[PARTIAL] CG Heuristic coressponding idx $isoIdx")
 
 		if iterIdxer > length(isoCosts)
 			rankedScenario = restIdx[findfirst(restCosts, select(restCosts, iterIdxer-length(isoCosts)))]
-			info("[PARTIAL]Picking scenario $rankedScenario for this iteration, outside the alpha scope")
+			println("[PARTIAL]Picking scenario $rankedScenario for this iteration, outside the alpha scope")
 		else
 			rankedScenario = isoIdx[findfirst(isoCosts, select(isoCosts, iterIdxer))]
-			info("[PARTIAL]Picking scenario $rankedScenario for this iteration")
+			println("[PARTIAL]Picking scenario $rankedScenario for this iteration")
 		end
 
 		# Generate a set of pairs that are required to be solved
 		partialPairPool = partial_generate_pool(stoc, rankedScenario, [pickScenarioPool;blendSet], solved)
-		info("[PARTIAL] TODO List: $partialPairPool")
+		println("[PARTIAL] TODO List: $partialPairPool")
 
 		# Extra synced record for parallel scheme
 		for pair in partialPairPool
@@ -328,27 +328,27 @@ function partial_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 														[subprob_formulation for pair in partialPairPool])
 
 		# Finish Solving
-		info("[PARTIAL] Solving paried pool took $(solvePairTime)")
+		println("[PARTIAL] Solving paried pool took $(solvePairTime)")
 		tictoc += solvePairTime
-		info("[PARTIAL] Finished partial solving phase TIME = $tictoc")
+		println("[PARTIAL] Finished partial solving phase TIME = $tictoc")
 
 		# Regroup the calculated designs for feasibility check
 		partialGroupPairDesigns = lineup_regroup_design(partialPairDesigns)
-		info("[SHORT] Paired design pool was parititioned into $(length(partialGroupPairDesigns)) groups")
+		println("[SHORT] Paired design pool was parititioned into $(length(partialGroupPairDesigns)) groups")
 		feaCheckTime = @elapsed checkedDesigns = pmap((a1,a2,a3,a4,a5)->lineup_groupdesign_fea(a1,a2,a3,a4,a5),
 														[power for group in partialGroupPairDesigns],
 														[param for group in partialGroupPairDesigns],
 														[stoc for group in partialGroupPairDesigns],
 														[exargs for group in partialGroupPairDesigns],
 														[group for group in partialGroupPairDesigns])
-		info("[PARTIAL] Checking generated design's feasibility took $(feaCheckTime)")
+		println("[PARTIAL] Checking generated design's feasibility took $(feaCheckTime)")
 		tictoc += feaCheckTime
-		info("[TICTOC] After finishing partial post process TIME = $tictoc")
+		println("[TICTOC] After finishing partial post process TIME = $tictoc")
 
 		# Collect all accumulated columns into the public pool
 		for g in checkedDesigns
 			for d in g
-				info("($(myid()))[PARTIAL-S] $(d.source) cost = <$(round.(d.cost,2))($(round.(d.coverage*100,2))\%)> [LB >> $(round.(d.lb,2))];\n")
+				println("($(myid()))[PARTIAL-S] $(d.source) cost = <$(round.(d.cost,2))($(round.(d.coverage*100,2))\%)> [LB >> $(round.(d.lb,2))];\n")
 				stoc.sbdColumns = sbd_store_design(stoc.sbdColumns, d)
 			end
 		end
@@ -357,12 +357,12 @@ function partial_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 		# =============================== Sequential Mode =============================== #
 
 		# ====================== Spinning Scenario Phase ======================= #
-		info("[PARTIAL]Master picked $pickScenarioPool")
+		println("[PARTIAL]Master picked $pickScenarioPool")
 
 		# Collect a set of iso costs
 		isoCosts = []
 		isoIdx = [] # The mismatch resulted from master problem selection
-		info("[PARTIAL] CG Heuristic response on iteration $iterIdxer")
+		println("[PARTIAL] CG Heuristic response on iteration $iterIdxer")
 		restIdx = []
 		restCosts = []
 		for s in 1:exargs[:S]
@@ -374,22 +374,22 @@ function partial_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 				push!(restIdx, s)
 			end
 		end
-		info("[PARTIAL] CG Heuristic collect isoCosts $isoCosts")
-		info("[PARTIAL] CG Heuristic coressponding idx $isoIdx")
+		println("[PARTIAL] CG Heuristic collect isoCosts $isoCosts")
+		println("[PARTIAL] CG Heuristic coressponding idx $isoIdx")
 
 		if iterIdxer > length(isoCosts)
 			rankedScenario = restIdx[findfirst(restCosts, select(restCosts, iterIdxer-length(isoCosts)))]
-			info("[PARTIAL]Picking scenario $rankedScenario for this iteration, outside the alpha scope")
+			println("[PARTIAL]Picking scenario $rankedScenario for this iteration, outside the alpha scope")
 		else
 			rankedScenario = isoIdx[findfirst(isoCosts, select(isoCosts, iterIdxer))]
-			info("[PARTIAL]Picking scenario $rankedScenario for this iteration")
+			println("[PARTIAL]Picking scenario $rankedScenario for this iteration")
 		end
 
 		# Generate a set of pairs that are required to be solved
 		# partialPairPool = partial_generate_pool(stoc, pickScenarioPool[iterIdxer%(length(pickScenarioPool))+1], pickScenarioPool, solved)
 		partialPairPool = partial_generate_pool(stoc, rankedScenario, [pickScenarioPool;blendSet], solved)
 
-		info("[PARTIAL] TODO List: $partialPairPool")
+		println("[PARTIAL] TODO List: $partialPairPool")
 		partialPairDesigns = Array{designType}(length(partialPairPool))
 
 		# Solve each pair sequentially and store the design in an array
@@ -401,7 +401,7 @@ function partial_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 			solveTime += idxSolveTime
 			solved[pair] = 1
 		end
-		info("[PARTIAL] Solving paried pool took $(solveTime)")
+		println("[PARTIAL] Solving paried pool took $(solveTime)")
 
 		# Check each generated design sequentially
 		feaCheckTime = 0.0
@@ -416,7 +416,7 @@ function partial_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 			for i in 1:length(partialPairDesigns)
 				singleCheckTime = @elapsed partialPairDesigns[i] = isolate_check_one_design_feasibility(power, param, stoc, exargs, partialPairDesigns[i], stoc.S, builtModel = allSubprobs)
 				d = partialPairDesigns[i]
-				info("($(myid()))[Spinning-S] $(d.source) cost = <$(round.(d.cost,2))(Cover $(round.(d.coverage,2)))(Time $(round.(d.time,2))s\%)> [LB >> $(round.(d.lb,2))];")
+				println("($(myid()))[Spinning-S] $(d.source) cost = <$(round.(d.cost,2))(Cover $(round.(d.coverage,2)))(Time $(round.(d.time,2))s\%)> [LB >> $(round.(d.lb,2))];")
 				feaCheckTime += singleCheckTime
 			end
 		else
@@ -425,7 +425,7 @@ function partial_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 				feaCheckTime += singleCheckTime
 			end
 		end
-		info("[PARTIAL] Checking generated design's feasibility took $(feaCheckTime)")
+		println("[PARTIAL] Checking generated design's feasibility took $(feaCheckTime)")
 
 		# Collect all accumulated columns into the public pool
 		for d in partialPairDesigns
