@@ -115,60 +115,47 @@ function shcg_enu(param::Dict, stoc::stocType, driver::Dict; kwargs...)
 	solved = options[:solved]
 	incumb = options[:incumb]
 	iter = options[:iter]
+	builtmodel = options[:builtmodel]
 
-	jobs = shcg_generate_task(param, solved, dim=iter)
+	jobs = shcg_generate_jobs(param, solved, dim=iter)
 	info("[ENU] Job Count = $(length(jobs))")
 
-	if driver[:PARALLEL]
-		tSolve = @elapsed cols = pmap((a1,a2,a3,a4)->shcg_solve_sp(a1,a2,a3,a4),
-										[param for j in jobs],
-										[stoc for j in jobs],
-										[driver for j in jobs],
-										[j for j in jobs])
-		info("[ENU] Solve time $(tsolve)")
-
-		groups = shcg_regroup_cols(cols, driver)
-		tcheck = @elapsed groups = pmap((a1,a2,a3,a4)->shcg_check_fea(a1,a2,a3,a4),
-										[param for g in groups],
-										[stoc for g in groups],
-										[driver for g in groups],
-										[g for g in groups])
-		info("[ENU] Feasibility check time $(tcheck)")
-
-		tstore = @elapsed [shcg_store_col(stoc.sbdColumns, g, incumb=incumb) for g in groups]
-		info("[ENU] Storaging time $(tstore)")s
-	else
-		tsolve = @elapsed cols = [shcg_solve_sp(param, stoc, driver, j) for j in jobs]
-		info("[ENU] Solve time $(tsolve)")
-
-		feamodels = [build_sp(param, stoc, driver, selection=s, sbtype="tight") for s in subsets([1:S;], 1)]
-		info("[ENU] Built $(length(feamodels)) feaibility check models.")
-
-		tcheck = @elapsed cols = [iso_check_block(c, param, stoc, driver, builtmodel=feamodels) for c in cols]
-		info("[ENU] Feasibility check time $(tcheck)")
-
-		tstore = @elapsed [shcg_store_col(stoc.sbdColumns, c, incumb=incumb) for c in cols]
-		info("[ENU] Storaging time $(tstore)")
-	end
+	shcg_process_jobs(param, stoc, driver, builtmodel, incumb)
+	# if driver[:PARALLEL]
+	# 	tSolve = @elapsed cols = pmap((a1,a2,a3,a4)->shcg_solve_sp(a1,a2,a3,a4),
+	# 									[param for j in jobs],
+	# 									[stoc for j in jobs],
+	# 									[driver for j in jobs],
+	# 									[j for j in jobs])
+	# 	info("[ENU] Solve time $(tsolve)")
+    #
+	# 	groups = shcg_regroup_cols(cols, driver)
+	# 	tcheck = @elapsed groups = pmap((a1,a2,a3,a4)->shcg_check_fea(a1,a2,a3,a4),
+	# 									[param for g in groups],
+	# 									[stoc for g in groups],
+	# 									[driver for g in groups],
+	# 									[g for g in groups])
+	# 	info("[ENU] Feasibility check time $(tcheck)")
+    #
+	# 	tstore = @elapsed [shcg_store_col(stoc.sbdColumns, g, incumb=incumb) for g in groups]
+	# 	info("[ENU] Storaging time $(tstore)")
+	# else
+	# 	tsolve = @elapsed cols = [shcg_solve_sp(param, stoc, driver, j) for j in jobs]
+	# 	info("[ENU] Solve time $(tsolve)")
+    #
+	# 	tcheck = @elapsed cols = [iso_check_block(c, param, stoc, driver, builtmodel=builtmodel) for c in cols]
+	# 	info("[ENU] Feasibility check time $(tcheck)")
+    #
+	# 	tstore = @elapsed [shcg_store_col(stoc.sbdColumns, c, incumb=incumb) for c in cols]
+	# 	info("[ENU] Storaging time $(tstore)")
+	# end
 
 	return
 end
 
-function partial_heu(power::Dict, param::Dict, stoc::stocType, driver::Dict,
-									masterIncumbent::Float64,
-									kickSet,
-									blendSet,
-									pickScenarioPool::Array,
-									neglectedScenarioPool::Array,
-									master_formulation::Function,
-									subprob_formulation::Function,
-									solved::Dict;
-									kwargs...)
+function shcg_enu(driver::Dict; findparameter=false)
 
-	extras = Dict(kwargs)
-
-	if haskey(extras, :findparameter)
-		info("Fetching parameter setup from improver_heuristic...")
+	if findparameter
 		if driver[:CGMAX] > 0
 			return Dict(:noimprovestop=>driver[:CGMAX])
 		else
@@ -176,199 +163,39 @@ function partial_heu(power::Dict, param::Dict, stoc::stocType, driver::Dict,
 		end
 	end
 
-	info("Running CG heuristic :: lineup_partial_heuristic")
-	incumblb = extras[:incumblb]
-	S = driver[:S]
-
-	if haskey(extras, :tictoc)
-		tictoc = extras[:tictoc]
-	else
-		tictoc = 0.0  	#Restart the clock for nothing
- 	end
-
-	if haskey(extras, :incumbent)
-		incumbent = extras[:incumbent]
-	else
-		incumbent = inf
-	end
-
-	if haskey(extras, :iterIdxer)
-		iterIdxer = extras[:iterIdxer]
-	end
-
-	# Change of data structure if not array
-	if !isa(kickSet, Array)
-		blendSet = collect(blendSet)
-	end
-
-	if !isa(blendSet, Array)
-		blendSet = collect(blendSet)
-	end
-
-	# Parallel Implementation
-	if config.PARALLEL
-
-		# ====================== Spinning Scenario Phase ======================= #
-		info("[PARTIAL]pickScenarioPool is $pickScenarioPool")
-
-		# Collect a set of iso costs
-		isoCosts = []
-		isoIdx = [] # The mismatch resulted from master problem selection
-		info("[PARTIAL] CG Heuristic response on iteration $iterIdxer")
-		restIdx = []
-		restCosts = []
-		for s in 1:driver[:S]
-			if s in pickScenarioPool
-				push!(isoCosts, stoc.sbdColumns[s].cost)
-				push!(isoIdx, s)
-			else
-				push!(restCosts, stoc.sbdColumns[s].cost)
-				push!(restIdx, s)
-			end
-		end
-		info("[PARTIAL] CG Heuristic collect isoCosts $isoCosts")
-		info("[PARTIAL] CG Heuristic coressponding idx $isoIdx")
-
-		if iterIdxer > length(isoCosts)
-			rankedScenario = restIdx[findfirst(restCosts, select(restCosts, iterIdxer-length(isoCosts)))]
-			info("[PARTIAL]Picking scenario $rankedScenario for this iteration, outside the alpha scope")
-		else
-			rankedScenario = isoIdx[findfirst(isoCosts, select(isoCosts, iterIdxer))]
-			info("[PARTIAL]Picking scenario $rankedScenario for this iteration")
-		end
-
-		# Generate a set of pairs that are required to be solved
-		partialPairPool = partial_generate_pool(stoc, rankedScenario, [pickScenarioPool;blendSet], solved)
-		info("[PARTIAL] TODO List: $partialPairPool")
-
-		# Extra synced record for parallel scheme
-		for pair in partialPairPool
-			solved[pair] = 1
-		end
-
-		# Prepare a solution space for carrying design solutions
-		partialPairDesigns = Array{designType}(length(partialPairPool))
-
-		# Solve each pair in parallel, utilize as many as workers available
-		solvePairTime=@elapsed partialPairDesigns = pmap((a1,a2,a3,a4,a5,a6)->shcg_solve_sp(a1,a2,a3,a4,a5,a6),
-														[power for pair in partialPairPool],
-														[param for pair in partialPairPool],
-														[stoc for pair in partialPairPool],
-														[driver for pair in partialPairPool],
-														[pair for pair in partialPairPool],
-														[subprob_formulation for pair in partialPairPool])
-
-		# Finish Solving
-		info("[PARTIAL] Solving paried pool took $(solvePairTime)")
-		tictoc += solvePairTime
-		info("[PARTIAL] Finished partial solving phase TIME = $tictoc")
-
-		# Regroup the calculated designs for feasibility check
-		partialGroupPairDesigns = lineup_regroup_design(partialPairDesigns)
-		info("[SHORT] Paired design pool was parititioned into $(length(partialGroupPairDesigns)) groups")
-		feaCheckTime = @elapsed checkedDesigns = pmap((a1,a2,a3,a4,a5)->shcg_check_fea(a1,a2,a3,a4,a5),
-														[power for group in partialGroupPairDesigns],
-														[param for group in partialGroupPairDesigns],
-														[stoc for group in partialGroupPairDesigns],
-														[driver for group in partialGroupPairDesigns],
-														[group for group in partialGroupPairDesigns])
-		info("[PARTIAL] Checking generated design's feasibility took $(feaCheckTime)")
-		tictoc += feaCheckTime
-		info("[TICTOC] After finishing partial post process TIME = $tictoc")
-
-		# Collect all accumulated columns into the public pool
-		for g in checkedDesigns
-			for d in g
-				info("($(myid()))[PARTIAL-S] $(d.source) cost = <$(round.(d.cost,2))($(round.(d.coverage*100,2))\%)> [LB >> $(round.(d.lb,2))];\n")
-				stoc.sbdColumns = sbd_store_design(stoc.sbdColumns, d)
-			end
-		end
-
-	else
-		# =============================== Sequential Mode =============================== #
-
-		# ====================== Spinning Scenario Phase ======================= #
-		info("[PARTIAL]Master picked $pickScenarioPool")
-
-		# Collect a set of iso costs
-		isoCosts = []
-		isoIdx = [] # The mismatch resulted from master problem selection
-		info("[PARTIAL] CG Heuristic response on iteration $iterIdxer")
-		restIdx = []
-		restCosts = []
-		for s in 1:driver[:S]
-			if s in pickScenarioPool
-				push!(isoCosts, stoc.sbdColumns[s].cost)
-				push!(isoIdx, s)
-			else
-				push!(restCosts, stoc.sbdColumns[s].cost)
-				push!(restIdx, s)
-			end
-		end
-		info("[PARTIAL] CG Heuristic collect isoCosts $isoCosts")
-		info("[PARTIAL] CG Heuristic coressponding idx $isoIdx")
-
-		if iterIdxer > length(isoCosts)
-			rankedScenario = restIdx[findfirst(restCosts, select(restCosts, iterIdxer-length(isoCosts)))]
-			info("[PARTIAL]Picking scenario $rankedScenario for this iteration, outside the alpha scope")
-		else
-			rankedScenario = isoIdx[findfirst(isoCosts, select(isoCosts, iterIdxer))]
-			info("[PARTIAL]Picking scenario $rankedScenario for this iteration")
-		end
-
-		# Generate a set of pairs that are required to be solved
-		# partialPairPool = partial_generate_pool(stoc, pickScenarioPool[iterIdxer%(length(pickScenarioPool))+1], pickScenarioPool, solved)
-		partialPairPool = partial_generate_pool(stoc, rankedScenario, [pickScenarioPool;blendSet], solved)
-
-		info("[PARTIAL] TODO List: $partialPairPool")
-		partialPairDesigns = Array{designType}(length(partialPairPool))
-
-		# Solve each pair sequentially and store the design in an array
-		idx = 0
-		solveTime = 0
-		for pair in partialPairPool
-			idx += 1
-			idxSolveTime = @elapsed partialPairDesigns[idx] = shcg_solve_sp(power, param, stoc, driver, pair, subprob_formulation)
-			solveTime += idxSolveTime
-			solved[pair] = 1
-		end
-		info("[PARTIAL] Solving paried pool took $(solveTime)")
-
-		# Check each generated design sequentially
-		feaCheckTime = 0.0
-		if config.WARMSTART
-			allSubprobs = Array{oneProblem}(stoc.S)
-			# Prepare a vector of problems for repetitvely checking
-			for ss = 1:stoc.S
-				allSubprobs[ss] = oneProblem()
-				allSubprobs[ss] = sp_formulation(power, param, stoc)
-				allSubprobs[ss] = attach_scenario(allSubprobs[ss], stoc, [ss], driver[:MODEL], 0.0, driver, subprobType="tight")
-			end
-			for i in 1:length(partialPairDesigns)
-				singleCheckTime = @elapsed partialPairDesigns[i] = iso_check_block(power, param, stoc, driver, partialPairDesigns[i], stoc.S, builtmodel = allSubprobs)
-				d = partialPairDesigns[i]
-				info("($(myid()))[Spinning-S] $(d.source) cost = <$(round.(d.cost,2))(Cover $(round.(d.coverage,2)))(Time $(round.(d.time,2))s\%)> [LB >> $(round.(d.lb,2))];")
-				feaCheckTime += singleCheckTime
-			end
-		else
-			for i in 1:length(partialPairDesigns)
-				singleCheckTime = @elapsed partialPairDesigns[i] = iso_check_block(power,param, stoc,driver,partialPairDesigns[i], stoc.S)
-				feaCheckTime += singleCheckTime
-			end
-		end
-		info("[PARTIAL] Checking generated design's feasibility took $(feaCheckTime)")
-
-		# Collect all accumulated columns into the public pool
-		for d in partialPairDesigns
-			stoc.sbdColumns = sbd_store_design(stoc.sbdColumns, d)
-		end
-
-	end
-
-	return stoc, solved, tictoc
+	return Dict
 end
 
-function shcgnr(param::Dict, stoc::stocType, driver::Dict; selection=[], isoCost=[])
+function shcg_heu(param::Dict, stoc::stocType, driver::Dict; kwargs...)
+
+	options = Dict(kwargs)
+
+	iter = options[:iter]
+	incumb = options[:incumb]
+	solved = options[:solved]
+	isoCost = options[:isoCost]
+	builtmodel = options[:builtmodel]
+
+	S = param[:S]
+
+	ranklist = sort(collect(zip(isoCost,[1:S;])))
+
+	pivotrank = mod(iter, param[:S]) + 1
+	dim = convert(Int, floor(iter/param[:S]))
+	pivot = ranklist[pivotrank][2]
+
+	# Pivot with selected job
+	jobs = shcg_generate_jobs(param, solved, pivot, dim=dim)
+
+	info("Running CG heuristic :: lineup_partial_heuristic")
+	incumblb = extras[:incumblb]
+
+	shcg_process_jobs(param, stoc, driver, builtmodel, incumb)
+
+	return
+end
+
+function shcg_nr(param::Dict, stoc::stocType, driver::Dict; selection=[], isoCost=[])
 
 	isempty(selection) ? selection = [1:param[:S];] : selection = selection
 

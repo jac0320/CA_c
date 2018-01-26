@@ -1,3 +1,37 @@
+function shcg_process_jobs(param::Dict, stoc::stocType, driver::Dict, builtmode::Vector{oneProblem}, incumb::Float)
+
+	if config[:PARALLEL]
+		tSolve = @elapsed cols = pmap((a1,a2,a3,a4)->shcg_solve_sp(a1,a2,a3,a4),
+										[param for j in jobs],
+										[stoc for j in jobs],
+										[driver for j in jobs],
+										[j for j in jobs])
+		info("[HEU] Solve time $(tsolve)")
+
+		groups = shcg_regroup_cols(cols, driver)
+		tcheck = @elapsed groups = pmap((a1,a2,a3,a4)->shcg_check_fea(a1,a2,a3,a4),
+										[param for g in groups],
+										[stoc for g in groups],
+										[driver for g in groups],
+										[g for g in groups])
+		info("[HEU] Feasibility check time $(tcheck)")
+
+		tstore = @elapsed [shcg_store_col(stoc.sbdColumns, g, incumb=incumb) for g in groups]
+		info("[HEU] Storaging time $(tstore)")
+	else
+		tsolve = @elapsed cols = [shcg_solve_sp(param, stoc, driver, j) for j in jobs]
+		info("[HEU] Solve time $(tsolve)")
+
+		tcheck = @elapsed cols = [iso_check_block(c, param, stoc, driver, builtmodel=builtmodel) for c in cols]
+		info("[HEU] Feasibility check time $(tcheck)")
+
+		tstore = @elapsed [shcg_store_col(stoc.sbdColumns, c, incumb=incumb) for c in cols]
+		info("[HEU] Storaging time $(tstore)")
+	end
+
+	return
+end
+
 function shcg_solve_master(param::Dict, stoc::stocType, driver::Dict; prevsol=nothing, incumb=Inf, builtmodel=nothing)
 
 	master = sbd_master_formulation(param, stoc, driver, prevsol=prevsol, incumbent=incumb)
@@ -36,7 +70,7 @@ end
 
 function shcg_solve_sp(param::Dict, stoc::stocType, driver::Dict, selection::Any, isoCost::Array)
 
-	col = shcgnr(param, stoc, driver, selection=selection, isoCost=isoCost)
+	col = shcg_nr(param, stoc, driver, selection=selection, isoCost=isoCost)
 	col.feamap = check_feasible(param, stoc, d, driver)
 	col.coverage = sum(col.feamap) / param[:S]
 
