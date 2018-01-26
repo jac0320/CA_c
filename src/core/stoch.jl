@@ -482,32 +482,32 @@ end
 
 function summary_scenarios(stoc::stocType, param::Dict)
 
-    println("[STOCH] Total Scenario $(stoc.S)")
-    println("[STOCH] Total Time Step Count $(stoc.T)")
-    println("[STOCH] Data shape => SLR $(size(stoc.scenarios[1].data["SL"]))")
-    println("[STOCH] Data shape => SS $(size(stoc.scenarios[1].data["SS"]))")
-    println("[STOCH] Minimum Bus Elevation => $(minimum(param[:Ele]))")
-    max_slr = 0.0
-    for s in 1:stoc.S
-        max_slr = max(max_slr, maximum(stoc.scenarios[s].data["SL"]))
-    end
-    println("[STOCH] MAX-SLR => $(max_slr)")
-    println("[STOCH] BUS under MAX-SLR => $(length(param[:Ele][param[:Ele] .<= max_slr]))")
-    for s in 1:stoc.S
-        println("[STOCH][S=$s] SLR $(stoc.scenarios[s].data["SL"])")
-        println("[STOCH][S=$s] BUS under SS ")
-        for t in 1:stoc.T
-            ss_bus_cnt = 0
-            for b in 1:param[:B]
-                if param[:Ele][b] < stoc.scenarios[s].data["SS"][b,t]
-                    ss_bus_cnt += 1
-                    println("BUS $(b) surged by $(round(stoc.scenarios[s].data["SS"][b,t]-param[:Ele][b],2))m without protection. (LOAD = $(param[:Pd][b]) | CAP = $(param[:PgUB][b]))")
-                end
-            end
-            println("T$(t)=>$(ss_bus_cnt); ")
-        end
-        print("\n")
-    end
+    # println("[STOCH] Total Scenario $(stoc.S)")
+    # println("[STOCH] Total Time Step Count $(stoc.T)")
+    # println("[STOCH] Data shape => SLR $(size(stoc.scenarios[1].data["SL"]))")
+    # println("[STOCH] Data shape => SS $(size(stoc.scenarios[1].data["SS"]))")
+    # println("[STOCH] Minimum Bus Elevation => $(minimum(param[:Ele]))")
+    # max_slr = 0.0
+    # for s in 1:stoc.S
+    #     max_slr = max(max_slr, maximum(stoc.scenarios[s].data["SL"]))
+    # end
+    # println("[STOCH] MAX-SLR => $(max_slr)")
+    # println("[STOCH] BUS under MAX-SLR => $(length(param[:Ele][param[:Ele] .<= max_slr]))")
+    # for s in 1:stoc.S
+    #     println("[STOCH][S=$s] SLR $(stoc.scenarios[s].data["SL"])")
+    #     println("[STOCH][S=$s] BUS under SS ")
+    #     for t in 1:stoc.T
+    #         ss_bus_cnt = 0
+    #         for b in 1:param[:B]
+    #             if param[:Ele][b] < stoc.scenarios[s].data["SS"][b,t]
+    #                 ss_bus_cnt += 1
+    #                 println("BUS $(b) surged by $(round(stoc.scenarios[s].data["SS"][b,t]-param[:Ele][b],2))m without protection. (LOAD = $(param[:Pd][b]) | CAP = $(param[:PgUB][b]))")
+    #             end
+    #         end
+    #         println("T$(t)=>$(ss_bus_cnt); ")
+    #     end
+    #     print("\n")
+    # end
 
     return
 end

@@ -14,20 +14,27 @@ function sbd_norisk(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 	feaPool = Set()
 	infeaPool = Set()
 
+	# if isempty(isoCost)
+	# 	println("[SBD-NORISK] ISO stage ...")
+	# 	isoTime, stoc, isoUnionCost, isoCost, earlyExit =
+	# 		isolate_stage(power, param, stoc, exargs, subprob_formulation, selection)
+	# 	tictoc += isoTime
+	# 	println("[TICTOC] After ISO stage = $tictoc s")
+	# end
+    #
+
 	if isempty(isoCost)
-		println("[SBD-NORISK] ISO stage ...")
-		isoTime, stoc, isoUnionCost, isoCost, earlyExit =
-			isolate_stage(power, param, stoc, exargs, subprob_formulation, selection)
-		tictoc += isoTime
-		println("[TICTOC] After ISO stage = $tictoc s")
-	end
-
-	initScenIdx = findfirst(isoCost, maximum(isoCost))
-	incumbentDesign = stoc.sbdColumns[initScenIdx]
-	push!(masterPool, initScenIdx)
-
-	for s in selection
-		(incumbentDesign.feamap[s]==0) ? push!(infeaPool, s) : push!(feaPool, s)
+		initScenIdx = 1
+		incumbentDesign = isolate_solve_one_scenario(power, param, stoc, initScenIdx, exargs, subprob_formulation, "free")
+		incumbentDesign.feamap = zeros(Int, S)
+		push!(masterPool, initScenIdx)
+	else
+		initScenIdx = findfirst(isoCost, maximum(isoCost))
+		incumbentDesign = stoc.sbdColumns[initScenIdx]
+		push!(masterPool, initScenIdx)
+		for s in selection
+			(incumbentDesign.feamap[s]==0) ? push!(infeaPool, s) : push!(feaPool, s)
+		end
 	end
 
 	allSubprobs = Array{oneProblem}(stoc.S)
