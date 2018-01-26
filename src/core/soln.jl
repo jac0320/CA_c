@@ -169,7 +169,7 @@ function print_design(design, param::Dict)
 
     totalExpand = sum(pg[:,T]) - sum(param[:Pg0])
     totalExpandBus = length(buildBus)
-    info("Expansion Design [New Generator Added $totalExpand on $totalExpandBus buses]")
+    println("Expansion Design [New Generator Added $totalExpand on $totalExpandBus buses]")
     for b in buildBus
         print(string("[EXPAND]BUS $(b)[Ele=$(round.(param[:Ele][b],2)), Cost=$(round.(param[:Cg][b,1],2)), Cap=$(round.(param[:PgUB][b],2)), Top=$(param[:Pgbar][b]), Init=$(param[:Pg0][b])]"))
         for t in 1:T
@@ -180,7 +180,7 @@ function print_design(design, param::Dict)
 
     totalHarden = sum(h[:,T]) - Int(sum(param[:H0]))
     totalHardenBus = length(hardenBus)
-    info("Harden Design [New harden added $totalHarden on $totalHardenBus buses]")
+    println("Harden Design [New harden added $totalHarden on $totalHardenBus buses]")
     for b in hardenBus
         print(string("[HARDEN]BUS $(b)[Ele=$(round.(param[:Ele][b],2)), Cost=$(round.(param[:Ch][b,1],2)), Cap=$(round.(param[:PgUB][b],2)), Top=$(param[:Pgbar][b]), Init=$(param[:Pg0][b])] "))
         for t in 1:T
@@ -202,31 +202,31 @@ function print_demand_summary(prob::oneProblem, sol::solnType)
     for s in 1:S
         for t in 1:T
             timeTotalLoad = round.(sum(prob.param[:aslDetPd][:,t,s]),2)
-            info("Total Load at Time Period $t >> $timeTotalLoad ;")
+            println("Total Load at Time Period $t >> $timeTotalLoad ;")
             push!(origTimeTotalLoad, timeTotalLoad)
         end
         for t in 1:T
             timeTotalLoad = round.(sum(sol.primal[:pdv][:,t,s]),2)
-            info("[SCEN$s] Total load at time period $t >> $timeTotalLoad [", round.(100*timeTotalLoad/origTimeTotalLoad[t],2) ,"]")
+            println("[SCEN$s] Total load at time period $t >> $timeTotalLoad [", round.(100*timeTotalLoad/origTimeTotalLoad[t],2) ,"]")
             allShedding = 0.0
             allShifted = 0.0
             origAssLoad = 0.0
             for i in 1:B
                 if prob.param[:aslDetPd][i,t,s] - sol.primal[:pdv][i,t,s] > 0.1
                     sheddingLoad = prob.param[:aslDetPd][i,t,s]-sol.primal[:pdv][i,t,s]
-                    info("[SCEN$s][Bus$i][--] Losing Load ", sheddingLoad,"]","[",sol.primal[:pdv][i,t,s],"];")
+                    println("[SCEN$s][Bus$i][--] Losing Load ", sheddingLoad,"]","[",sol.primal[:pdv][i,t,s],"];")
                     @assert abs(sol.primal[:ass][i,t,s] - 0.0) <= 0.1
                     allShedding += sheddingLoad
                 elseif prob.param[:aslDetPd][i,t,s] - sol.primal[:pdv][i,t,s] < -0.1
                     shiftedLoad = sol.primal[:pdv][i,t,s]-prob.param[:aslDetPd][i,t,s]
-                    info("[SCEN$s][Bus$i][++] Adding Load ", shiftedLoad,"]","[",sol.primal[:pdv][i,t,s],"];")
+                    println("[SCEN$s][Bus$i][++] Adding Load ", shiftedLoad,"]","[",sol.primal[:pdv][i,t,s],"];")
                     @assert abs(sol.primal[:ass][i,t,s] - 0.0) <= 0.1
                     allShifted += shiftedLoad
                 end
                 origAssLoad += (1-sol.primal[:ass][i,t,s])*prob.param[:aslDetPd][i,t,s]
             end
-            info("Total Shedding Load >> $allShedding; Total Shifted Load $allShifted;")
-            info("Shedding Percentage >> ",round.(100*(allShedding-allShifted)/origAssLoad) ,"%;")
+            println("Total Shedding Load >> $allShedding; Total Shifted Load $allShifted;")
+            println("Shedding Percentage >> ",round.(100*(allShedding-allShifted)/origAssLoad) ,"%;")
         end
     end
 

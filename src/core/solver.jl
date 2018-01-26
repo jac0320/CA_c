@@ -28,7 +28,7 @@ function solver_config(model::JuMP.Model; kwargs...)
         elseif options[:focus] == "bound" #3
             focus = 3
         else
-            info("Unkown focus option. Setting to 0 - balanced.")
+            println("Unkown focus option. Setting to 0 - balanced.")
             focus = 0
         end
     else
@@ -117,8 +117,8 @@ function print_iis_gurobi(m::Model)
 	    iislb = Gurobi.get_intattrarray(grb, "IISLB", 1, numvar)
 	    iisub = Gurobi.get_intattrarray(grb, "IISUB", 1, numvar)
 
-	    info("Irreducible Inconsistent Subsystem (IIS)")
-	    info("Variable bounds:")
+	    println("Irreducible Inconsistent Subsystem (IIS)")
+	    println("Variable bounds:")
 	    for i in 1:numvar
 	        v = Variable(m, i)
 	        if iislb[i] != 0 && iisub[i] != 0
@@ -130,7 +130,7 @@ function print_iis_gurobi(m::Model)
 	        end
 	    end
 
-	    info("Constraints:")
+	    println("Constraints:")
 	    for i in 1:numconstr
 	        if iisconstr[i] != 0
 	            println(m.linconstr[i])
@@ -138,7 +138,7 @@ function print_iis_gurobi(m::Model)
 	    end
 
 	else
-		info("Current solver doesn't support IIS.")
+		println("Current solver doesn't support IIS.")
 	end
 
 end

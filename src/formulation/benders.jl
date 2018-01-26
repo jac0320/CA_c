@@ -30,7 +30,7 @@ function climate_benders_master_constraints(m::JuMP.Model, Xvars::Dict; kwargs..
 
     data = Dict(kwargs)
 
-    # Get the frequently used info
+    # Get the frequently used println
     param = data[:package][:param]
 	eps = data[:package][:exargs][:eps]
 
@@ -124,7 +124,7 @@ function climate_benders_subprob_constraints(m::JuMP.Model, Yvars::Dict, Xvars::
 
 	data = Dict(kwargs)
 
-    # Get the frequently used info :: hopefully julia won't copy it
+    # Get the frequently used println :: hopefully julia won't copy it
     param = data[:package][:param]
 	eps = data[:package][:exargs][:eps]
 

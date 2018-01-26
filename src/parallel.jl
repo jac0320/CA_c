@@ -1,6 +1,6 @@
 if config.PARALLEL   # The whole script runs only when in parallel mode
 
-	info("Reporting from the head node, I am head worker")
+	println("Reporting from the head node, I am head worker")
 
     if length(config.WORKERS) > 1
         if config.JOBPERWORKER > 1

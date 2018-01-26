@@ -36,7 +36,7 @@ function read_config(configPath::AbstractString="")
 	userARGS = parse_commandline_args()
 
     # Initialization of the configurations
-    config.INPUTPATH = joinpath(homedir(),"Norfolk_2", "scenariopackage")
+    config.INPUTPATH = joinpath(homedir(), "Inputs", "Climate")
     config.OUTPUTPATH = joinpath(homedir(), "Outputs", "Climate")
     config.TIMELIMIT = 10800
 	config.TIMELIMITII = 1800
@@ -330,10 +330,10 @@ function get_driver_args(args::Dict; kwargs...)
 
 	if isfile("$(config.INPUTPATH)$(args["CSV"]).csv")
 		driver[:CSV] = readtable("$(config.INPUTPATH)$(args["CSV"]).csv")
-		info("Found CSV file as support data")
+		println("Found CSV file as support data")
 	elseif isfile("$(config.INPUTPATH)$(args["CSV"])")
 		driver[:CSV] = readtable("$(config.INPUTPATH)$(args["CSV"])")
-		info("Found CSV file as support data")
+		println("Found CSV file as support data")
 	else
 		driver[:CSV] = nothing
 	end

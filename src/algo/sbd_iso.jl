@@ -25,7 +25,7 @@ function isolate_stage(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 	earlyExit = false
 
 	if config.PARALLEL # parallel implementation
-		info("[ISO] Running in parallel...")
+		println("[ISO] Running in parallel...")
 		solveTime = @elapsed isoDesignPool = pmap((a1,a2,a3,a4,a5,a6,a7)->isolate_solve_one_scenario(a1,a2,a3,a4,a5,a6,a7),
 							[power for s in selection],
 							[param for s in selection],
@@ -44,12 +44,12 @@ function isolate_stage(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 							[S for d in isoDesignPool])
 
 		for s in selection
-			info("[ISO] Scen $s -> cost = [$(round.(isoDesignPool[s].cost,2))][LB=$(round.(isoDesignPool[s].lb,2))][TIME=$(round.(isoDesignPool[s].time,2))][Cover=$(round.(isoDesignPool[s].coverage,4))]")
+			println("[ISO] Scen $s -> cost = [$(round.(isoDesignPool[s].cost,2))][LB=$(round.(isoDesignPool[s].lb,2))][TIME=$(round.(isoDesignPool[s].time,2))][Cover=$(round.(isoDesignPool[s].coverage,4))]")
 			push!(stoc.sbdColumns, isoDesignPool[s])
 		end
 
 	else # sequential implementation
-		info("[ISO] Running in sequential...")
+		println("[ISO] Running in sequential...")
 		solveTime = 0.0
 		for s in selection
 			oneSolveTime = @elapsed isoDesign =
@@ -59,10 +59,10 @@ function isolate_stage(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 			solveTime += oneSolveTime
 		end
 
-		info("[ISO] Enetering feasibility checking phase...")
+		println("[ISO] Enetering feasibility checking phase...")
 		checkFeaTime = 0.0
 		allSubprobs = Array{oneProblem}(length(selection))
-		info("[ISO] WARMSTARTing feasibility check process...")
+		println("[ISO] WARMSTARTing feasibility check process...")
 		for s in selection
 			allSubprobs[s] = oneProblem()
 			allSubprobs[s] = sbd_base_formulation(power, param, stoc)
@@ -71,13 +71,13 @@ function isolate_stage(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 		for s in selection
 			oneCheckFeaTime = @elapsed isolate_check_one_design_feasibility(power, param, stoc, exargs, stoc.sbdColumns[s], stoc.S, builtModel = allSubprobs)
 			isoDesignPool[s] = stoc.sbdColumns[s]
-			info("[ISO] Scen $s -> cost = [$(round.(isoDesignPool[s].cost,2))][LB=$(round.(isoDesignPool[s].lb,2))][TIME=$(round.(isoDesignPool[s].time,2))][Cover $(round.(isoDesignPool[s].coverage,2))][CHECKFEATime $(round.(oneCheckFeaTime,2))]")
+			println("[ISO] Scen $s -> cost = [$(round.(isoDesignPool[s].cost,2))][LB=$(round.(isoDesignPool[s].lb,2))][TIME=$(round.(isoDesignPool[s].time,2))][Cover $(round.(isoDesignPool[s].coverage,2))][CHECKFEATime $(round.(oneCheckFeaTime,2))]")
 			checkFeaTime += oneCheckFeaTime
 		end
 	end
 
 	isoTime = solveTime + checkFeaTime
-	info("[TICTOC] main process over in $(isoTime)s")
+	println("[TICTOC] main process over in $(isoTime)s")
 
 	for s in selection
 		if isoDesignPool[s].cost <= earlyExitCost
@@ -93,14 +93,14 @@ function isolate_stage(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 
 	# Early exit rule :: if minimum cost isolated scenario fits the risk constraint, then find feasible lower bound.
 	if earlyExitFeaCnt >= S * (1-exargs[:eps])
-		info("[ISO] Early stopping at isolating stage. Resulting scenario = $earlyExitIndex")
-		info("[ISO] Early stopping objective = $earlyExitCost")
+		println("[ISO] Early stopping at isolating stage. Resulting scenario = $earlyExitIndex")
+		println("[ISO] Early stopping objective = $earlyExitCost")
 		earlyExit = true
 	end
 
 	# ============================== Security stage =============================== #
 	# Notice this security stage might violate certain first stage solutions
-	info("[ISO] Pumping a safety column into decision space")
+	println("[ISO] Pumping a safety column into decision space")
 	isoUnionDesign = union_design(isoDesignPool, param=param)
 	isoUnionDesign.feamap = ones(Int, S)
 	isoUnionDesign.source = [1:S;]
@@ -128,7 +128,7 @@ function isolate_solve_one_scenario(power::Dict,
 	status = solve(oneIsoProb.model)
 
 	if status == :Infeasible
-		info("[ISO] Creating infea column on scenario $s")
+		println("[ISO] Creating infea column on scenario $s")
 		oneIsoDesign = infea_design(s, param)
 	else
 		oneIsoDesign = get_design(oneIsoProb.model)
