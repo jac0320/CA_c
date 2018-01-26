@@ -461,10 +461,10 @@ end
 
 function create_null_samples(B::Int, T::Int)
 
-    samples = stocType()
+    samples = stocType(1, T, B)
     samples.S = 1
     samples.T = T
-    samples.B = 1
+    samples.B = B
 
     sl = zeros(Float64,T)
     ss = zeros(Float64,B,T)
