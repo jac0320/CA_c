@@ -3,9 +3,7 @@ function write_output_files(power::Dict, param::Dict, stoc::stocType, solution, 
 	if config.FILEOUTPUT == true
 
 		# Assign File Output Strings
-		designFilepath = string(config.OUTPUTPATH, exargs[:OUTPATH], "design_", exargs[:NAME],".json")
-		paramFilepath = string(config.OUTPUTPATH, exargs[:OUTPATH], "param_", exargs[:NAME],".json")
-		stocFilepath = string(config.OUTPUTPATH, exargs[:OUTPATH], "stoc_",stoc.S,"_",exargs[:STOCHMODE],"_",exargs[:NAME],".json")
+		designFilepath = joinpath(config.OUTPUTPATH, exargs[:OUTPATH], "design_$(exargs[:NAME]).json")
 
 		# See if there already exist such a file ::
 		try
@@ -14,32 +12,6 @@ function write_output_files(power::Dict, param::Dict, stoc::stocType, solution, 
 			println("Creating new design output file.")
 		end
 		write_json(power,designFilepath)
-
-		if exargs[:PARAMWRITE]
-			try
-				rm(paramFilepath)
-			catch e
-				println("Creating new param output file")
-			end
-			write_json(param,paramFilepath)
-		end
-
-		# Write scnearios down
-		if exargs[:STOCHWRITE]
-			try
-				rm(stocFilePath)
-			catch e
-				println("Creating new stoc output file")
-			end
-			stocDict = Dict()
-			stocDict["SS"] = Dict()
-			stocDict["SL"] = Dict()
-			for s in 1:stoc.S
-				stocDict["SS"] = stoc.scenarios[s].data["SS"]
-				stocDict["SL"] = stoc.scenarios[s].data["SL"]
-			end
-			write_json(stocDict,stocFilepath)
-		end
 
 		# Write Design Details
 		designDict = Dict()

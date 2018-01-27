@@ -2,18 +2,19 @@ function evaluation(power::Dict, param::Dict, stoc::stocType, exargs::Dict; kwar
 
     options = Dict(kwargs)
 
-    outfname = string(config.OUTPUTPATH, exargs[:OUTPATH], "eval_", exargs[:NAME], ".out")
+    outfname = joinpath(config.OUTPUTPATH, exargs[:OUTPATH], "eval_$(exargs[:NAME]).out")
     outf = open(outfname, "w")
     evaltodo = []
     evalnames = []
+
     if isfile(exargs[:EVALDESIGN])
         write(outf, "[EVALUATING] Detecting a design file...")
         push!(evalnames, exargs[:EVALDESIGN])
         push!(evaltodo, parse_design(exargs[:EVALDESIGN], param))
-    elseif isfile(string(config.OUTPUTPATH, exargs[:EVALDESIGN]))
+    elseif isfile(joinpath(config.OUTPUTPATH, exargs[:EVALDESIGN]))
         write(outf, "[EVALUATING] Detecting a design file...")
         push!(evalnames, exargs[:EVALDESIGN])
-        push!(evaltodo, parse_design(string(config.OUTPUTPATH, exargs[:EVALDESIGN]), param))
+        push!(evaltodo, parse_design(joinpath(config.OUTPUTPATH, exargs[:EVALDESIGN]), param))
     elseif isdir(exargs[:EVALDESIGN])
         write(outf, "[EVALUATING] Detecting a dir with design json")
         filelist = glob("*.json", string(string(exargs[:EVALDESIGN])))

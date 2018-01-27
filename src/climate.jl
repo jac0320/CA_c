@@ -187,7 +187,6 @@ function summary_driver_arguments(param::Dict, stoc::stocType, driver::Dict)
 
     @assert param[:S]   == stoc.S
 	@assert param[:B]   == driver[:B]
-    @assert param[:S]   == driver[:S]
     @assert param[:T]   == stoc.T
     @assert param[:T]   == driver[:T]
     @assert param[:eps] == driver[:eps]
