@@ -24,10 +24,18 @@ function sbd_heuristic(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 
 	cgparameters = eval(parse(exargs[:CGHEURISTIC]))(power, param, stoc, exargs,
 		0.0,Set(),Set(),[],[], master_formulation, subprob_formulation, Dict(), findparameter=true)
-
+	btt = time()
+	allSubprobs = Array{oneProblem}(stoc.S)
+	# Prepare a vector of problems for repetitvely checking
+	for ss = 1:stoc.S
+		allSubprobs[ss] = oneProblem()
+		allSubprobs[ss] = sbd_base_formulation(power, param, stoc)
+		allSubprobs[ss] = attach_scenario(allSubprobs[ss], stoc, [ss], exargs[:MODEL], 0.0, exargs, subprobType="tight")
+	end
+	@show time()-btt
 	# ====================================== PHASE 1 ====================================== #
 	println("[SBD] Isolating scenarios for basic stage...")
-	isoTime, stoc, isoUnionCost, isoCost, earlyExit = isolate_stage(power, param, stoc, exargs, subprob_formulation)
+	isoTime, stoc, isoUnionCost, isoCost, earlyExit = isolate_stage(power, param, stoc, exargs, subprob_formulation, [], allSubprobs)
 	if earlyExit == true
 		return 0 # Here need to return something else
 	end
@@ -128,11 +136,13 @@ function sbd_heuristic(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 			incumbentPool = copy(incumbentPool)
 		end
 
+		write_output_files(power, param, stoc, incumbentDesign, exargs)
+
 		tictoc += masterTime
 		println("[TICTOC] After master in iteration $iter, TIME = $tictoc")
 		# Termination I :: consecutively no improvement
 		stop = false
-		if noImprove > cgparameters[:noimprovestop] || iter > exargs[:S]*(1-exargs[:EPS])
+		if noImprove > cgparameters[:noimprovestop] || iter > exargs[:S]*(1-exargs[:EPS]) || tictoc > 21600
 			println("[I] NO INCREMENT/MAX IITERATION STRIKEOUT. Best UB OBTAINED. TERMINATING WITH INUMCBENT = ", incumbent)
 			incumbentPool = pickScenarioPool
 			stop = true
@@ -224,6 +234,7 @@ function sbd_heuristic(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 									master_formulation,
 									subprob_formulation,
 									solved,
+									allSubprobs,
 									fixedLB = fixedLB,
 									tictoc = tictoc,
 									incumbent = incumbent,

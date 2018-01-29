@@ -1,5 +1,5 @@
 function isolate_stage(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
-					   isoprob_formulation::Function, selection=[];
+					   isoprob_formulation::Function, selection=[], allSubprobs=nothing;
 					   kwargs...)
 
 	options = Dict(kwargs)
@@ -61,13 +61,13 @@ function isolate_stage(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 
 		println("[ISO] Enetering feasibility checking phase...")
 		checkFeaTime = 0.0
-		allSubprobs = Array{oneProblem}(length(selection))
-		println("[ISO] WARMSTARTing feasibility check process...")
-		for s in selection
-			allSubprobs[s] = oneProblem()
-			allSubprobs[s] = sbd_base_formulation(power, param, stoc)
-		 	allSubprobs[s] = attach_scenario(allSubprobs[s], stoc, [s], exargs[:MODEL], 0.0, exargs, subprobType="tight")
-		end
+		# allSubprobs = Array{oneProblem}(length(selection))
+		# println("[ISO] WARMSTARTing feasibility check process...")
+		# for s in selection
+		# 	allSubprobs[s] = oneProblem()
+		# 	allSubprobs[s] = sbd_base_formulation(power, param, stoc)
+		#  	allSubprobs[s] = attach_scenario(allSubprobs[s], stoc, [s], exargs[:MODEL], 0.0, exargs, subprobType="tight")
+		# end
 		for s in selection
 			oneCheckFeaTime = @elapsed isolate_check_one_design_feasibility(power, param, stoc, exargs, stoc.sbdColumns[s], stoc.S, builtModel = allSubprobs)
 			isoDesignPool[s] = stoc.sbdColumns[s]
@@ -124,7 +124,7 @@ function isolate_solve_one_scenario(power::Dict,
 
 	oneIsoProb = formulation(power,param,stoc, [s], exargs, subprobType=subprobType)
 	warmstart_heuristic(oneIsoProb, power, param, stoc, exargs, selection=[s])
-	solver_config(oneIsoProb.model, timelimit=config.TIMELIMITIII, mipgap=config.OPTGAP, showlog=config.SHOWLOG, focus="optimality", presolve=1, threads=config.WORKERTHREADS)
+	solver_config(oneIsoProb.model, timelimit=config.TIMELIMITIII, mipgap=config.OPTGAP, showlog=0, focus="optimality", presolve=1, threads=config.WORKERTHREADS)
 	status = solve(oneIsoProb.model)
 
 	if status == :Infeasible

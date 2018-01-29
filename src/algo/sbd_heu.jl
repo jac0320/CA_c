@@ -231,7 +231,7 @@ function partial_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 									neglectedScenarioPool::Array,
 									master_formulation::Function,
 									subprob_formulation::Function,
-									solved::Dict;
+									solved::Dict, allSubprobs=nothing;
 									kwargs...)
 
 	extras = Dict(kwargs)
@@ -406,13 +406,13 @@ function partial_heu(power::Dict, param::Dict, stoc::stocType, exargs::Dict,
 		# Check each generated design sequentially
 		feaCheckTime = 0.0
 		if config.WARMSTART
-			allSubprobs = Array{oneProblem}(stoc.S)
-			# Prepare a vector of problems for repetitvely checking
-			for ss = 1:stoc.S
-				allSubprobs[ss] = oneProblem()
-				allSubprobs[ss] = sbd_base_formulation(power, param, stoc)
-				allSubprobs[ss] = attach_scenario(allSubprobs[ss], stoc, [ss], exargs[:MODEL], 0.0, exargs, subprobType="tight")
-			end
+			# allSubprobs = Array{oneProblem}(stoc.S)
+			# # Prepare a vector of problems for repetitvely checking
+			# for ss = 1:stoc.S
+			# 	allSubprobs[ss] = oneProblem()
+			# 	allSubprobs[ss] = sbd_base_formulation(power, param, stoc)
+			# 	allSubprobs[ss] = attach_scenario(allSubprobs[ss], stoc, [ss], exargs[:MODEL], 0.0, exargs, subprobType="tight")
+			# end
 			for i in 1:length(partialPairDesigns)
 				singleCheckTime = @elapsed partialPairDesigns[i] = isolate_check_one_design_feasibility(power, param, stoc, exargs, partialPairDesigns[i], stoc.S, builtModel = allSubprobs)
 				d = partialPairDesigns[i]
