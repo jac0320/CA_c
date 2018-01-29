@@ -91,11 +91,11 @@ function reprocess_scenarios(stoc::stocType, driver::Dict)
         return downscale_scenarios(stoc, 50)
     elseif driver[:STOCHMODE] == "ave"
         return downscale_scenarios(stoc, 0.0)
-    elseif ismatch(r"\d+-dev", driver[:STOCHMODE])
-        deviation = Float(split(driver[:STOCHMODE], "-")[1])
+    elseif ismatch(r"\d+.\d+-dev", driver[:STOCHMODE])
+        deviation = parse(match(r"\d+.\d+", driver[:STOCHMODE]).match)
         return downscale_scenarios(stoc, deviation)
     elseif ismatch(r"\d+-perc", driver[:STOCHMODE])
-        perc = Int(split(driver[:STOCHMODE], "-")[1])
+        perc = convert(Int, parse(match(r"\d+", driver[:STOCHMODE]).match))
         return downscale_scenarios(stoc, perc)
     else
         return stoc
@@ -125,7 +125,6 @@ function downscale_scenarios(stoc::stocType, deviation::Float64)
             for s in 1:stoc.S
                 ss_sort[s] = stoc.scenarios[s].data["SS"][b,t]
             end
-            dstoc.scenario.data["SS"][b,t] = select(ss_sort, Int(rank))
             ss_std = std(ss_sort)
             ss_mean = mean(ss_sort)
             dstoc.scenarios[1].data["SS"][b,t] = ss_mean + deviation*ss_std
@@ -138,7 +137,6 @@ end
 function downscale_scenarios(stoc::stocType, perc::Int)
 
     T, B = stoc.T, stoc.B
-    @show B, T
     rank = max(floor((perc/100) * stoc.S), 1)
 
     dstoc = stocType(1, stoc.T, stoc.B)
@@ -152,13 +150,11 @@ function downscale_scenarios(stoc::stocType, perc::Int)
             slr_sort[s] = stoc.scenarios[s].data["SL"][t]
         end
         dstoc.scenarios[1].data["SL"][t] = select(slr_sort, Int(rank))
-        @show Int(rank), slr_sort, dstoc.scenarios[1].data["SL"][t]
         for b in 1:B
             for s in 1:stoc.S
                 ss_sort[s] = stoc.scenarios[s].data["SS"][b,t]
             end
             dstoc.scenarios[1].data["SS"][b,t] = select(ss_sort, Int(rank))
-            @show b, Int(rank), ss_sort, dstoc.scenarios[1].data["SS"][b,t]
         end
     end
 
