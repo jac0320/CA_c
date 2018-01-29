@@ -34,7 +34,7 @@ if config.PARALLEL   # The whole script runs only when in parallel mode
     totalWorkers = length(workers())
 
 	for worker in workers()
-        remotecall(include, worker, "src/main.jl")
+        remotecall(include, worker, "src/climate.jl")
     end
 
 	sleep(10) #Hard waiting for other nodes to load all packages
