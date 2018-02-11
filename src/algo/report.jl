@@ -60,18 +60,18 @@ function analysis_solution(power::Dict, param::Dict, stoc::stocType, exargs::Dic
 
     # Summary Costs
     c_total, c_exp, c_har = get_design_cost(d, param)
-    println("TOTAL-COST : $(c_total)", prefix=pf)
-    println("    EXPAND-COST : $(c_exp)", prefix=pf)
-    println("    HARDEN-COST : $(c_har)", prefix=pf)
+    println("TOTAL-COST : $(c_total)")
+    println("    EXPAND-COST : $(c_exp)")
+    println("    HARDEN-COST : $(c_har)")
 
     println("--------------------")
 
     bt_exp = sum(d.pg[:,T])-sum(d.pg[:,1])
     bt_har = sum(d.h[:,T])-sum(d.h[:,1])
     bt_total = bt_exp + bt_har
-    println("TOTAL-BUILD : $(bt_total)", prefix=pf)
-    println("    EXPAND-BUILD : $(bt_exp)", prefix=pf)
-    println("    HARDEN-BUILD : $(bt_har)", prefix=pf)
+    println("TOTAL-BUILD : $(bt_total)")
+    println("    EXPAND-BUILD : $(bt_exp)")
+    println("    HARDEN-BUILD : $(bt_har)")
 
     println("--------------------")
 
@@ -115,11 +115,11 @@ function analysis_solution(power::Dict, param::Dict, stoc::stocType, exargs::Dic
     bh_exp_hist = fit(Histogram, bh_exp, 0:2.0:60.0, closed=:left)
     bh_har_hist = fit(Histogram, bh_har, 1.0:0.25:7.0, closed=:left)
 
-    println("Average | Median | Max | Min-HEIGHT : $(baveh) | $(bmedh) | $(bmaxh) | $(bminh)", prefix=pf)
-    println("    EXPAND-Average | Median | Max | Min-HEIGHT : $(baveh_exp) | $(bmedh_exp) | $(bmaxh_exp) | $(bminh_exp)", prefix=pf)
-    println("    EXPAND-HIST : $(cumsum(reverse(bh_exp_hist.weights)))\n", prefix=pf)
-    println("    HARDEN-Average | Median | Max | Min-HEIGHT : $(baveh_har) | $(bmedh_har) | $(bmaxh_har) | $(bminh_har)", prefix=pf)
-    println("    HARDEN-HIST : $(cumsum(reverse(bh_har_hist.weights)))\n", prefix=pf)
+    println("Average | Median | Max | Min-HEIGHT : $(baveh) | $(bmedh) | $(bmaxh) | $(bminh)")
+    println("    EXPAND-Average | Median | Max | Min-HEIGHT : $(baveh_exp) | $(bmedh_exp) | $(bmaxh_exp) | $(bminh_exp)")
+    println("    EXPAND-HIST : $(cumsum(reverse(bh_exp_hist.weights)))")
+    println("    HARDEN-Average | Median | Max | Min-HEIGHT : $(baveh_har) | $(bmedh_har) | $(bmaxh_har) | $(bminh_har)")
+    println("    HARDEN-HIST : $(cumsum(reverse(bh_har_hist.weights)))")
 
     println("--------------------")
 
@@ -130,14 +130,14 @@ function analysis_solution(power::Dict, param::Dict, stoc::stocType, exargs::Dic
     unit_me_har = [(d.h[:,i] - param[:H0])'*param[:ProM] for i in 1:T]
     unit_cost_exp = [(d.pg[:,i] - param[:Pg0])'*param[:Cg][:,i] for i in 1:T]
     unit_cost_har = [(d.h[:,i] - param[:H0])'*param[:Ch][:,i] for i in 1:T]
-    println("AVE-UNIT-EXPAND $(c_exp/unit_mw_exp[end])",prefix=pf)
-    println("AVE-UNIT-HARDEN $(c_har/unit_me_har[end])",prefix=pf)
-    println("UNIT-EXPAND $(unit_exp)", prefix=pf)
-    println("UNIT-HARDEN $(unit_har)", prefix=pf)
-    # println("BETA MW-EXPAND $(unit_mw_exp)", prefix=pf)
-    # println("BETA METER-HARDEN $(unit_me_har)", prefix=pf)
-    # println("BETA COST-EXPAND $(unit_cost_exp)", prefix=pf)
-    # println("BETA COST-HARDEN $(unit_cost_har)", prefix=pf)
+    println("AVE-UNIT-EXPAND $(c_exp/unit_mw_exp[end])")
+    println("AVE-UNIT-HARDEN $(c_har/unit_me_har[end])")
+    println("UNIT-EXPAND $(unit_exp)")
+    println("UNIT-HARDEN $(unit_har)")
+    # println("BETA MW-EXPAND $(unit_mw_exp)")
+    # println("BETA METER-HARDEN $(unit_me_har)")
+    # println("BETA COST-EXPAND $(unit_cost_exp)")
+    # println("BETA COST-HARDEN $(unit_cost_har)")
     # close(outf)
     return
 end
